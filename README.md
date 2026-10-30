@@ -1,4 +1,4 @@
-# n8n Business Automation Workflows
+# 54 HBA n8n Business Automation Workflows
 
 A collection of 51 business automation projects covering CRM reporting, membership revenue, marketing analytics, email operations, AI research and controlled testing. Each project includes its n8n workflow export and a configuration guide.
 
