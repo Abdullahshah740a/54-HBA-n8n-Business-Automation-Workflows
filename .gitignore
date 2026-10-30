@@ -1,0 +1,7 @@
+.env
+.env.*
+credentials*.json
+*execution*.json
+*receipt*.json
+node_modules/
+__pycache__/

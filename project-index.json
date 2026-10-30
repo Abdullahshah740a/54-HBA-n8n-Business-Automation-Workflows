@@ -1,0 +1,413 @@
+[
+  {
+    "project": "Membership Revenue Reconciliation and Executive Reporting Automation",
+    "project_id": "membership-revenue-reconciliation-and-executive-reporting-automation",
+    "documentation": "docs/membership-revenue-reconciliation-and-executive-reporting-automation.md",
+    "workflow_files": [
+      "workflows/membership-revenue-reconciliation-and-executive-reporting.json"
+    ]
+  },
+  {
+    "project": "LinkedIn Outreach Event Capture and Airtable Sync Automation",
+    "project_id": "linkedin-outreach-event-capture-and-airtable-sync-automation",
+    "documentation": "docs/linkedin-outreach-event-capture-and-airtable-sync-automation.md",
+    "workflow_files": [
+      "workflows/linkedin-outreach-event-capture-and-airtable-sync.json"
+    ]
+  },
+  {
+    "project": "Weekly Sales Activity and Conversion Reporting Automation",
+    "project_id": "weekly-sales-activity-and-conversion-reporting-automation",
+    "documentation": "docs/weekly-sales-activity-and-conversion-reporting-automation.md",
+    "workflow_files": [
+      "workflows/weekly-sales-activity-and-conversion-reporting.json"
+    ]
+  },
+  {
+    "project": "Executive KPI and Sales Performance Dashboard Refresh Automation",
+    "project_id": "executive-kpi-and-sales-performance-dashboard-refresh-automation",
+    "documentation": "docs/executive-kpi-and-sales-performance-dashboard-refresh-automation.md",
+    "workflow_files": [
+      "workflows/executive-kpi-and-sales-performance-dashboard-refresh.json"
+    ]
+  },
+  {
+    "project": "Department Task Tracking and Weekly Reporting Automation",
+    "project_id": "department-task-tracking-and-weekly-reporting-automation",
+    "documentation": "docs/department-task-tracking-and-weekly-reporting-automation.md",
+    "workflow_files": [
+      "workflows/department-task-tracking-and-weekly-reporting-version-01.json",
+      "workflows/department-task-tracking-and-weekly-reporting-version-02.json"
+    ]
+  },
+  {
+    "project": "Event Registration and Attendance Reporting Automation",
+    "project_id": "event-registration-and-attendance-reporting-automation",
+    "documentation": "docs/event-registration-and-attendance-reporting-automation.md",
+    "workflow_files": [
+      "workflows/event-registration-and-attendance-reporting-version-01.json",
+      "workflows/event-registration-and-attendance-reporting-version-02.json"
+    ]
+  },
+  {
+    "project": "Weekly Blog Publishing and Marketing Reporting Automation",
+    "project_id": "weekly-blog-publishing-and-marketing-reporting-automation",
+    "documentation": "docs/weekly-blog-publishing-and-marketing-reporting-automation.md",
+    "workflow_files": [
+      "workflows/weekly-blog-publishing-and-marketing-reporting.json"
+    ]
+  },
+  {
+    "project": "YouTube Channel and Top Video Performance Reporting Automation",
+    "project_id": "youtube-channel-and-top-video-performance-reporting-automation",
+    "documentation": "docs/youtube-channel-and-top-video-performance-reporting-automation.md",
+    "workflow_files": [
+      "workflows/youtube-channel-and-top-video-performance-reporting-version-01.json",
+      "workflows/youtube-channel-and-top-video-performance-reporting-version-02.json"
+    ]
+  },
+  {
+    "project": "LinkedIn Outreach Event Validation and Meridian Reporting Automation",
+    "project_id": "linkedin-outreach-event-validation-and-meridian-reporting-automation",
+    "documentation": "docs/linkedin-outreach-event-validation-and-meridian-reporting-automation.md",
+    "workflow_files": [
+      "workflows/linkedin-outreach-event-validation-and-meridian-reporting.json"
+    ]
+  },
+  {
+    "project": "Approved Recipient Group Staging Automation",
+    "project_id": "approved-recipient-group-staging-automation",
+    "documentation": "docs/approved-recipient-group-staging-automation.md",
+    "workflow_files": [
+      "workflows/approved-recipient-group-staging.json"
+    ]
+  },
+  {
+    "project": "Authenticated Email Verification Approval Automation",
+    "project_id": "authenticated-email-verification-approval-automation",
+    "documentation": "docs/authenticated-email-verification-approval-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-email-verification-approval.json"
+    ]
+  },
+  {
+    "project": "Authenticated Prospect Batch Intake and Processing Approval Automation",
+    "project_id": "authenticated-prospect-batch-intake-and-processing-approval-automation",
+    "documentation": "docs/authenticated-prospect-batch-intake-and-processing-approval-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-prospect-batch-intake-and-processing-approval.json"
+    ]
+  },
+  {
+    "project": "Authenticated Outreach Batch Progress and Resume Automation",
+    "project_id": "authenticated-outreach-batch-progress-and-resume-automation",
+    "documentation": "docs/authenticated-outreach-batch-progress-and-resume-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-outreach-batch-progress-and-resume.json"
+    ]
+  },
+  {
+    "project": "Authenticated Email Draft Review and Exact Copy Approval Automation",
+    "project_id": "authenticated-email-draft-review-and-exact-copy-approval-automation",
+    "documentation": "docs/authenticated-email-draft-review-and-exact-copy-approval-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-email-draft-review-and-exact-copy-approval.json"
+    ]
+  },
+  {
+    "project": "Authenticated Exact Recipient Campaign Release Automation",
+    "project_id": "authenticated-exact-recipient-campaign-release-automation",
+    "documentation": "docs/authenticated-exact-recipient-campaign-release-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-exact-recipient-campaign-release.json"
+    ]
+  },
+  {
+    "project": "Authenticated Workflow Recovery and Provider Readback Automation",
+    "project_id": "authenticated-workflow-recovery-and-provider-readback-automation",
+    "documentation": "docs/authenticated-workflow-recovery-and-provider-readback-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-workflow-recovery-and-provider-readback.json"
+    ]
+  },
+  {
+    "project": "Authenticated Recipient Staging Approval Automation",
+    "project_id": "authenticated-recipient-staging-approval-automation",
+    "documentation": "docs/authenticated-recipient-staging-approval-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-recipient-staging-approval.json"
+    ]
+  },
+  {
+    "project": "Authorized Contact Alias Installation and Verification Automation",
+    "project_id": "authorized-contact-alias-installation-and-verification-automation",
+    "documentation": "docs/authorized-contact-alias-installation-and-verification-automation.md",
+    "workflow_files": [
+      "workflows/authorized-contact-alias-installation-and-verification.json"
+    ]
+  },
+  {
+    "project": "Automatic Email Reply and Bounce Monitoring Automation",
+    "project_id": "automatic-email-reply-and-bounce-monitoring-automation",
+    "documentation": "docs/automatic-email-reply-and-bounce-monitoring-automation.md",
+    "workflow_files": [
+      "workflows/automatic-email-reply-and-bounce-monitoring.json"
+    ]
+  },
+  {
+    "project": "Bounded Outreach Batch Processing Driver Automation",
+    "project_id": "bounded-outreach-batch-processing-driver-automation",
+    "documentation": "docs/bounded-outreach-batch-processing-driver-automation.md",
+    "workflow_files": [
+      "workflows/bounded-outreach-batch-processing-driver.json"
+    ]
+  },
+  {
+    "project": "Checkpointed Email Address Verification Automation",
+    "project_id": "checkpointed-email-address-verification-automation",
+    "documentation": "docs/checkpointed-email-address-verification-automation.md",
+    "workflow_files": [
+      "workflows/checkpointed-email-address-verification.json"
+    ]
+  },
+  {
+    "project": "Checkpointed AI Research Scoring and Email Draft Processing Automation",
+    "project_id": "checkpointed-ai-research-scoring-and-email-draft-processing-automation",
+    "documentation": "docs/checkpointed-ai-research-scoring-and-email-draft-processing-automation.md",
+    "workflow_files": [
+      "workflows/checkpointed-ai-research-scoring-and-email-draft-processing.json"
+    ]
+  },
+  {
+    "project": "Email Sender Health and Campaign Evidence Collection Automation",
+    "project_id": "email-sender-health-and-campaign-evidence-collection-automation",
+    "documentation": "docs/email-sender-health-and-campaign-evidence-collection-automation.md",
+    "workflow_files": [
+      "workflows/email-sender-health-and-campaign-evidence-collection.json"
+    ]
+  },
+  {
+    "project": "Webhook Event Acknowledgement and Trusted Monitor Wake Automation",
+    "project_id": "webhook-event-acknowledgement-and-trusted-monitor-wake-automation",
+    "documentation": "docs/webhook-event-acknowledgement-and-trusted-monitor-wake-automation.md",
+    "workflow_files": [
+      "workflows/webhook-event-acknowledgement-and-trusted-monitor-wake.json"
+    ]
+  },
+  {
+    "project": "Approved Exact Copy Campaign Staging Automation",
+    "project_id": "approved-exact-copy-campaign-staging-automation",
+    "documentation": "docs/approved-exact-copy-campaign-staging-automation.md",
+    "workflow_files": [
+      "workflows/approved-exact-copy-campaign-staging.json"
+    ]
+  },
+  {
+    "project": "Initial Outreach Group Input Sheet Setup Automation",
+    "project_id": "initial-outreach-group-input-sheet-setup-automation",
+    "documentation": "docs/initial-outreach-group-input-sheet-setup-automation.md",
+    "workflow_files": [
+      "workflows/initial-outreach-group-input-sheet-setup.json"
+    ]
+  },
+  {
+    "project": "Initial Recipient Group No Send Readiness Evidence Automation",
+    "project_id": "initial-recipient-group-no-send-readiness-evidence-automation",
+    "documentation": "docs/initial-recipient-group-no-send-readiness-evidence-automation.md",
+    "workflow_files": [
+      "workflows/initial-recipient-group-no-send-readiness-evidence.json"
+    ]
+  },
+  {
+    "project": "Fresh Prospect Exclusion and Campaign Membership Evidence Automation",
+    "project_id": "fresh-prospect-exclusion-and-campaign-membership-evidence-automation",
+    "documentation": "docs/fresh-prospect-exclusion-and-campaign-membership-evidence-automation.md",
+    "workflow_files": [
+      "workflows/fresh-prospect-exclusion-and-campaign-membership-evidence.json"
+    ]
+  },
+  {
+    "project": "Reviewed Pilot Email Import and Review Export Automation",
+    "project_id": "reviewed-pilot-email-import-and-review-export-automation",
+    "documentation": "docs/reviewed-pilot-email-import-and-review-export-automation.md",
+    "workflow_files": [
+      "workflows/reviewed-pilot-email-import-and-review-export.json"
+    ]
+  },
+  {
+    "project": "Zero Spend Outreach Worker Repair Recheck Automation",
+    "project_id": "zero-spend-outreach-worker-repair-recheck-automation",
+    "documentation": "docs/zero-spend-outreach-worker-repair-recheck-automation.md",
+    "workflow_files": [
+      "workflows/zero-spend-outreach-worker-repair-recheck.json"
+    ]
+  },
+  {
+    "project": "Native State Store Claim and Stale Update Proof Automation",
+    "project_id": "native-state-store-claim-and-stale-update-proof-automation",
+    "documentation": "docs/native-state-store-claim-and-stale-update-proof-automation.md",
+    "workflow_files": [
+      "workflows/native-state-store-claim-and-stale-update-proof.json"
+    ]
+  },
+  {
+    "project": "Dedicated Outreach Input and Review Workbook Setup Automation",
+    "project_id": "dedicated-outreach-input-and-review-workbook-setup-automation",
+    "documentation": "docs/dedicated-outreach-input-and-review-workbook-setup-automation.md",
+    "workflow_files": [
+      "workflows/dedicated-outreach-input-and-review-workbook-setup.json"
+    ]
+  },
+  {
+    "project": "Email Outcome Response and Campaign Protection Automation",
+    "project_id": "email-outcome-response-and-campaign-protection-automation",
+    "documentation": "docs/email-outcome-response-and-campaign-protection-automation.md",
+    "workflow_files": [
+      "workflows/email-outcome-response-and-campaign-protection.json"
+    ]
+  },
+  {
+    "project": "Unresolved Email Verification Hold Management Automation",
+    "project_id": "unresolved-email-verification-hold-management-automation",
+    "documentation": "docs/unresolved-email-verification-hold-management-automation.md",
+    "workflow_files": [
+      "workflows/unresolved-email-verification-hold-management.json"
+    ]
+  },
+  {
+    "project": "Authenticated Provider Outcome Ingestion and Ledger Automation",
+    "project_id": "authenticated-provider-outcome-ingestion-and-ledger-automation",
+    "documentation": "docs/authenticated-provider-outcome-ingestion-and-ledger-automation.md",
+    "workflow_files": [
+      "workflows/authenticated-provider-outcome-ingestion-and-ledger.json"
+    ]
+  },
+  {
+    "project": "Verified Outreach Review Sheet Publishing Automation",
+    "project_id": "verified-outreach-review-sheet-publishing-automation",
+    "documentation": "docs/verified-outreach-review-sheet-publishing-automation.md",
+    "workflow_files": [
+      "workflows/verified-outreach-review-sheet-publishing.json"
+    ]
+  },
+  {
+    "project": "Isolated Two Prospect AI Provider Proof Automation",
+    "project_id": "isolated-two-prospect-ai-provider-proof-automation",
+    "documentation": "docs/isolated-two-prospect-ai-provider-proof-automation.md",
+    "workflow_files": [
+      "workflows/isolated-two-prospect-ai-provider-proof.json"
+    ]
+  },
+  {
+    "project": "Isolated Two Prospect Bounded Test Driver Automation",
+    "project_id": "isolated-two-prospect-bounded-test-driver-automation",
+    "documentation": "docs/isolated-two-prospect-bounded-test-driver-automation.md",
+    "workflow_files": [
+      "workflows/isolated-two-prospect-bounded-test-driver.json"
+    ]
+  },
+  {
+    "project": "Bounded Final Email Prompt Revision Test Automation",
+    "project_id": "bounded-final-email-prompt-revision-test-automation",
+    "documentation": "docs/bounded-final-email-prompt-revision-test-automation.md",
+    "workflow_files": [
+      "workflows/bounded-final-email-prompt-revision-test.json"
+    ]
+  },
+  {
+    "project": "Incomplete Prospect Category Assessment Continuation Automation",
+    "project_id": "incomplete-prospect-category-assessment-continuation-automation",
+    "documentation": "docs/incomplete-prospect-category-assessment-continuation-automation.md",
+    "workflow_files": [
+      "workflows/incomplete-prospect-category-assessment-continuation.json"
+    ]
+  },
+  {
+    "project": "Prospect Identity Anchor Research Retry Automation",
+    "project_id": "prospect-identity-anchor-research-retry-automation",
+    "documentation": "docs/prospect-identity-anchor-research-retry-automation.md",
+    "workflow_files": [
+      "workflows/prospect-identity-anchor-research-retry.json"
+    ]
+  },
+  {
+    "project": "Saved AI Provider Receipt Reparse and Test Resume Automation",
+    "project_id": "saved-ai-provider-receipt-reparse-and-test-resume-automation",
+    "documentation": "docs/saved-ai-provider-receipt-reparse-and-test-resume-automation.md",
+    "workflow_files": [
+      "workflows/saved-ai-provider-receipt-reparse-and-test-resume.json"
+    ]
+  },
+  {
+    "project": "Supported Core Offer Email Copy Scenario Test Automation",
+    "project_id": "supported-core-offer-email-copy-scenario-test-automation",
+    "documentation": "docs/supported-core-offer-email-copy-scenario-test-automation.md",
+    "workflow_files": [
+      "workflows/supported-core-offer-email-copy-scenario-test.json"
+    ]
+  },
+  {
+    "project": "Isolated AI Research Scoring and Draft Test Worker Automation",
+    "project_id": "isolated-ai-research-scoring-and-draft-test-worker-automation",
+    "documentation": "docs/isolated-ai-research-scoring-and-draft-test-worker-automation.md",
+    "workflow_files": [
+      "workflows/isolated-ai-research-scoring-and-draft-test-worker.json"
+    ]
+  },
+  {
+    "project": "AI Outreach Repeatability Bounded Driver Automation",
+    "project_id": "ai-outreach-repeatability-bounded-driver-automation",
+    "documentation": "docs/ai-outreach-repeatability-bounded-driver-automation.md",
+    "workflow_files": [
+      "workflows/ai-outreach-repeatability-bounded-driver.json"
+    ]
+  },
+  {
+    "project": "AI Outreach Repeatability Research and Draft Worker Automation",
+    "project_id": "ai-outreach-repeatability-research-and-draft-worker-automation",
+    "documentation": "docs/ai-outreach-repeatability-research-and-draft-worker-automation.md",
+    "workflow_files": [
+      "workflows/ai-outreach-repeatability-research-and-draft-worker.json"
+    ]
+  },
+  {
+    "project": "AI Outreach Repeatability Test Run A Continuation Automation",
+    "project_id": "ai-outreach-repeatability-test-run-a-continuation-automation",
+    "documentation": "docs/ai-outreach-repeatability-test-run-a-continuation-automation.md",
+    "workflow_files": [
+      "workflows/ai-outreach-repeatability-test-run-a-continuation.json"
+    ]
+  },
+  {
+    "project": "AI Outreach Repeatability Test Run B Setup and Processing Automation",
+    "project_id": "ai-outreach-repeatability-test-run-b-setup-and-processing-automation",
+    "documentation": "docs/ai-outreach-repeatability-test-run-b-setup-and-processing-automation.md",
+    "workflow_files": [
+      "workflows/ai-outreach-repeatability-test-run-b-setup-and-processing.json"
+    ]
+  },
+  {
+    "project": "Read Only AI Model Availability Evidence Automation",
+    "project_id": "read-only-ai-model-availability-evidence-automation",
+    "documentation": "docs/read-only-ai-model-availability-evidence-automation.md",
+    "workflow_files": [
+      "workflows/read-only-ai-model-availability-evidence.json"
+    ]
+  },
+  {
+    "project": "AI Outreach Repeatability Run B Replay and Resume Automation",
+    "project_id": "ai-outreach-repeatability-run-b-replay-and-resume-automation",
+    "documentation": "docs/ai-outreach-repeatability-run-b-replay-and-resume-automation.md",
+    "workflow_files": [
+      "workflows/ai-outreach-repeatability-run-b-replay-and-resume.json"
+    ]
+  },
+  {
+    "project": "Retired AI Model Failure Reconciliation and Test Recovery Automation",
+    "project_id": "retired-ai-model-failure-reconciliation-and-test-recovery-automation",
+    "documentation": "docs/retired-ai-model-failure-reconciliation-and-test-recovery-automation.md",
+    "workflow_files": [
+      "workflows/retired-ai-model-failure-reconciliation-and-test-recovery.json"
+    ]
+  }
+]

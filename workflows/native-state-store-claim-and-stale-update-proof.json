@@ -1,0 +1,360 @@
+{
+  "name": "Native State Store Claim and Stale Update Proof Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-synthetic-proof",
+      "name": "Manual Synthetic Proof",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "SAMPLE Email Store Proof 2026-10-09",
+        "columns": {
+          "column": [
+            {
+              "name": "owner"
+            },
+            {
+              "name": "revision",
+              "type": "number"
+            },
+            {
+              "name": "payload_json"
+            },
+            {
+              "name": "state_hash"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": false
+        }
+      },
+      "id": "create-isolated-proof-table",
+      "name": "Create Isolated Proof Table",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "mode": "name",
+          "value": "SAMPLE Email Store Proof 2026-10-09"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "owner": "",
+            "revision": 0,
+            "payload_json": "{\"records\":[],\"revision\":0,\"synthetic\":true,\"sending_enabled\":false}",
+            "state_hash": "a349fe6ef6fb65936430cbf57db37f07262a939681e26aab69685feefc4758f6"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": false
+        }
+      },
+      "id": "insert-synthetic-state",
+      "name": "Insert Synthetic State",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(i=>i.json);if(rows.length!==1||!Number.isInteger(rows[0].id)||rows[0].revision!==0||rows[0].owner!=='')throw new Error('PROBE_SEED_INVALID');return [{json:rows[0]}];"
+      },
+      "id": "save-original-row-identity",
+      "name": "Save Original Row Identity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "mode": "name",
+          "value": "SAMPLE Email Store Proof 2026-10-09"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Save Original Row Identity').first().json.id }}"
+            },
+            {
+              "keyName": "revision",
+              "keyValue": "0"
+            },
+            {
+              "keyName": "owner"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "owner": "synthetic-A",
+            "revision": 1
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "first-claim",
+      "name": "First Claim",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(i=>i.json);if(rows.length!==1||rows[0].id!==$('Save Original Row Identity').first().json.id||rows[0].revision!==1||rows[0].owner!=='synthetic-A')throw new Error('FIRST_CLAIM_FAILED');return [{json:rows[0]}];"
+      },
+      "id": "verify-first-claim",
+      "name": "Verify First Claim",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "mode": "name",
+          "value": "SAMPLE Email Store Proof 2026-10-09"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Save Original Row Identity').first().json.id }}"
+            },
+            {
+              "keyName": "revision",
+              "keyValue": "0"
+            },
+            {
+              "keyName": "owner"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "owner": "synthetic-B",
+            "revision": 1
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "competing-stale-claim",
+      "name": "Competing Stale Claim",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "position": [
+        1328,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(i=>i.json).filter(r=>r.id!==undefined);if(rows.length)throw new Error('STALE_CLAIM_UNEXPECTEDLY_WON');return [{json:{stale_claim_rejected:true}}];"
+      },
+      "id": "verify-stale-claim-lost",
+      "name": "Verify Stale Claim Lost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "mode": "name",
+          "value": "SAMPLE Email Store Proof 2026-10-09"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Save Original Row Identity').first().json.id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "read-proof-result",
+      "name": "Read Proof Result",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(i=>i.json),seed=$('Save Original Row Identity').first().json;\nif(rows.length!==1||rows[0].owner!=='synthetic-A'||rows[0].revision!==1||rows[0].state_hash!==seed.state_hash||rows[0].payload_json!==seed.payload_json)throw new Error('PROBE_READBACK_MISMATCH');\nreturn [{json:{passed:true,table:\"SAMPLE Email Store Proof 2026-10-09\",row_id:rows[0].id,claim_filter_and_receipt:true,stale_claim_rejected:true,payload_preserved:true,true_parallel_execution_proven:false,provider_calls:0,messages_sent:0}}];"
+      },
+      "id": "proof-receipt",
+      "name": "Proof Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Proof": {
+      "main": [
+        [
+          {
+            "node": "Create Isolated Proof Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Isolated Proof Table": {
+      "main": [
+        [
+          {
+            "node": "Insert Synthetic State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Synthetic State": {
+      "main": [
+        [
+          {
+            "node": "Save Original Row Identity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Original Row Identity": {
+      "main": [
+        [
+          {
+            "node": "First Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First Claim": {
+      "main": [
+        [
+          {
+            "node": "Verify First Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify First Claim": {
+      "main": [
+        [
+          {
+            "node": "Competing Stale Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Competing Stale Claim": {
+      "main": [
+        [
+          {
+            "node": "Verify Stale Claim Lost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Stale Claim Lost": {
+      "main": [
+        [
+          {
+            "node": "Read Proof Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Proof Result": {
+      "main": [
+        [
+          {
+            "node": "Proof Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

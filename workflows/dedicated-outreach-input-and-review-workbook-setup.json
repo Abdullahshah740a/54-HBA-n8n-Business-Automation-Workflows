@@ -1,0 +1,80 @@
+{
+  "name": "Dedicated Outreach Input and Review Workbook Setup Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Manual One-Time Setup",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"properties\":{\"title\":\"SAMPLE Email Operations — Controlled Pilot\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Input\",\"gridProperties\":{\"rowCount\":1001,\"columnCount\":9}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"selected\"}},{\"userEnteredValue\":{\"stringValue\":\"contact_id\"}},{\"userEnteredValue\":{\"stringValue\":\"first_name\"}},{\"userEnteredValue\":{\"stringValue\":\"last_name\"}},{\"userEnteredValue\":{\"stringValue\":\"business_email\"}},{\"userEnteredValue\":{\"stringValue\":\"personal_email\"}},{\"userEnteredValue\":{\"stringValue\":\"organization\"}},{\"userEnteredValue\":{\"stringValue\":\"state\"}},{\"userEnteredValue\":{\"stringValue\":\"linkedin_url\"}}]}]}]},{\"properties\":{\"sheetId\":1,\"title\":\"Review\",\"gridProperties\":{\"rowCount\":21,\"columnCount\":24}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"run_id\"}},{\"userEnteredValue\":{\"stringValue\":\"contact_id\"}},{\"userEnteredValue\":{\"stringValue\":\"name\"}},{\"userEnteredValue\":{\"stringValue\":\"email\"}},{\"userEnteredValue\":{\"stringValue\":\"status\"}},{\"userEnteredValue\":{\"stringValue\":\"reason\"}},{\"userEnteredValue\":{\"stringValue\":\"overall\"}},{\"userEnteredValue\":{\"stringValue\":\"recommended_offer\"}},{\"userEnteredValue\":{\"stringValue\":\"angle\"}},{\"userEnteredValue\":{\"stringValue\":\"review_flags\"}},{\"userEnteredValue\":{\"stringValue\":\"scoring_reasons\"}},{\"userEnteredValue\":{\"stringValue\":\"missing_evidence\"}},{\"userEnteredValue\":{\"stringValue\":\"subject\"}},{\"userEnteredValue\":{\"stringValue\":\"email_body\"}},{\"userEnteredValue\":{\"stringValue\":\"sources\"}},{\"userEnteredValue\":{\"stringValue\":\"copy_hash\"}},{\"userEnteredValue\":{\"stringValue\":\"approval_status\"}},{\"userEnteredValue\":{\"stringValue\":\"approved_by\"}},{\"userEnteredValue\":{\"stringValue\":\"approved_at\"}},{\"userEnteredValue\":{\"stringValue\":\"errors\"}},{\"userEnteredValue\":{\"stringValue\":\"dispatch_status\"}},{\"userEnteredValue\":{\"stringValue\":\"delivery_status\"}},{\"userEnteredValue\":{\"stringValue\":\"outcome_actions\"}},{\"userEnteredValue\":{\"stringValue\":\"review_url\"}}]}]}]}]}",
+        "options": {}
+      },
+      "id": "create",
+      "name": "Create Dedicated Operating Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": false,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$input.first().json;if(!r.spreadsheetId||r.sheets?.length!==2)throw new Error('SHEET_SETUP_NOT_CONFIRMED');return [{json:{spreadsheet_id:r.spreadsheetId,url:r.spreadsheetUrl,sheets:r.sheets.map(s=>s.properties)}}];"
+      },
+      "id": "receipt",
+      "name": "Setup Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual One-Time Setup": {
+      "main": [
+        [
+          {
+            "node": "Create Dedicated Operating Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Dedicated Operating Sheet": {
+      "main": [
+        [
+          {
+            "node": "Setup Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

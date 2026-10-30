@@ -1,0 +1,751 @@
+{
+  "name": "Weekly Sales Activity and Conversion Reporting Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -112
+      ],
+      "id": "EXAMPLE_UUID_88FA36D0B0",
+      "name": "Run Now (Manual)"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        48
+      ],
+      "id": "EXAMPLE_UUID_5CDF257648",
+      "name": "Weekly (Mon 06:00)"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_F4F6258ABB",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        -32
+      ],
+      "id": "EXAMPLE_UUID_0CA76B82E1",
+      "name": "Read Opportunities",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_DF49835468",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        -32
+      ],
+      "id": "EXAMPLE_UUID_89ED02799E",
+      "name": "Read Appointments",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "https://services.leadconnectorhq.com/users/?locationId=EXAMPLE_RESOURCE_ID_5271A38AF4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "EXAMPLE_SECRET_AF937DAF29"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        624,
+        -32
+      ],
+      "id": "EXAMPLE_UUID_80803BE627",
+      "name": "Read GHL Users",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n//  SAMPLE OS  -  Weekly Rollup  ->  Sales Engine\n//  Computes the dashboard numbers from the two GHL-fed tables.\n//    Calls   = Raw Appointments (calendar type + booked/conducted)\n//    Closes  = Opportunities where Unified Stage = \"Closed Won\"\n//  Window    = current Monday 00:00 UTC .. next Monday (exclusive)\n//  Does NOT touch Weekly Call/Close Target (those stay manual).\n// ============================================================\nfunction norm(v){ return (v==null?\"\":String(v)).toLowerCase().trim(); }\nfunction fields(it){ return it.json.fields || it.json; }\n\nvar OPPS  = $(\"Read Opportunities\").all().map(fields);\nvar APPTS = $(\"Read Appointments\").all().map(fields);\nvar USERS = $(\"Read GHL Users\").all();\n\n// ---- GHL user id -> display name (for rep attribution on closes) ----\nvar userMap = {};\n(function(){\n  var raw = [];\n  for (var i=0;i<USERS.length;i++){\n    var j = USERS[i].json || {};\n    if (Array.isArray(j.users)) raw = raw.concat(j.users);\n    else if (j.id) raw.push(j);\n  }\n  for (var u=0;u<raw.length;u++){\n    var nm = raw[u].name || ((raw[u].firstName||\"\")+\" \"+(raw[u].lastName||\"\")).trim();\n    if (raw[u].id) userMap[raw[u].id] = nm;\n  }\n})();\n\n// ---- week window ----\nfunction mondayOf(d){ var x=new Date(d); var k=(x.getUTCDay()+6)%7;\n  x.setUTCDate(x.getUTCDate()-k); x.setUTCHours(0,0,0,0); return x; }\nvar weekStart = mondayOf(new Date());\nvar weekEnd   = new Date(weekStart); weekEnd.setUTCDate(weekEnd.getUTCDate()+7);\nfunction inWeek(iso){ if(!iso) return false; var t=new Date(iso).getTime();\n  return isFinite(t) && t>=weekStart.getTime() && t<weekEnd.getTime(); }\nvar weekISO = weekStart.toISOString().substring(0,10);\n\n// ---- helpers ----\nfunction repBucket(name){ var n=norm(name);\n  if(n.indexOf(\"john\")>=0) return \"John\";\n  if(n.indexOf(\"heather\")>=0) return \"Heather\";\n  if(n.indexOf(\"mitchell\")>=0) return \"Mitchell\";\n  return null; }\nfunction calType(title){ var t=norm(title);\n  if(t.indexOf(\"alignment\")>=0) return \"Alignment\";\n  if(t.indexOf(\"conversion\")>=0) return \"Conversion\";\n  if(t.indexOf(\"pulsecheck\")>=0||t.indexOf(\"pulse check\")>=0) return \"PulseCheck\";\n  if(t.indexOf(\"postcheck\")>=0||t.indexOf(\"post check\")>=0) return \"PostCheck\";\n  return \"Other\"; }\nfunction cancelled(s){ s=norm(s);\n  return s.indexOf(\"cancel\")>=0||s.indexOf(\"noshow\")>=0||s.indexOf(\"no show\")>=0||s.indexOf(\"invalid\")>=0; }\nfunction conducted(s){ s=norm(s); return s.indexOf(\"show\")>=0 && s.indexOf(\"noshow\")<0 && s.indexOf(\"no show\")<0; }\n\n// ---- output skeleton (every Sales Engine numeric field, Targets excluded) ----\nvar o = {\n  \"Week\": weekISO,\n  \"New Leads\":0,\n  \"Alignment Calls Booked\":0, \"Alignment Calls Conducted\":0,\n  \"Conversion Calls Booked\":0, \"PulseCheck Calls Booked\":0, \"PostCheck Follow-ups\":0,\n  \"Qualified Proximity Members\":0,\n  \"Alignment Calls by John\":0, \"Alignment Calls by Heather\":0, \"Alignment Calls by Mitchell\":0,\n  \"Catalyst Total Closed\":0, \"Catalyst by John\":0, \"Catalyst by Heather\":0, \"Catalyst by Mitchell\":0,\n  \"Core Total Closed\":0, \"Core by John\":0, \"Core by Heather\":0, \"Core by Mitchell\":0,\n  \"Circle Total Closed\":0, \"Circle by John\":0, \"Circle by Heather\":0, \"Circle by Mitchell\":0,\n  \"Capital Engine Total Closed\":0, \"Capital Engine by John\":0,\n  \"Nexus Success Total Closed\":0,\n  \"WhatsApp Group Joins\":0\n};\n\n// ---- CALLS (Raw Appointments) ----\nfor (var a=0;a<APPTS.length;a++){\n  var ap = APPTS[a];\n  var when = ap[\"Appointment Time\"];\n  if (!inWeek(when)) continue;\n  var status = ap[\"Appointment Status\"];\n  if (cancelled(status)) continue;                 // a cancelled/no-show slot is not a booked call\n  var type = calType(ap[\"Calender Title\"]);\n  // owner: prefer the Assigned User column, else parse Raw Payload body.user\n  var owner = ap[\"Assigned User\"] || \"\";\n  if (!owner && ap[\"Raw Payload\"]){\n    try { var b=JSON.parse(ap[\"Raw Payload\"]).body||{};\n      if (b.user) owner=((b.user.firstName||\"\")+\" \"+(b.user.lastName||\"\")).trim(); } catch(e){}\n  }\n  var rep = repBucket(owner);\n  if (type===\"Alignment\"){\n    o[\"Alignment Calls Booked\"]++;\n    if (conducted(status)) o[\"Alignment Calls Conducted\"]++;\n    if (rep) o[\"Alignment Calls by \"+rep]++;\n  } else if (type===\"Conversion\"){ o[\"Conversion Calls Booked\"]++; }\n  else if (type===\"PulseCheck\"){ o[\"PulseCheck Calls Booked\"]++; }\n  else if (type===\"PostCheck\"){ o[\"PostCheck Follow-ups\"]++; }\n}\n\n// ---- CLOSES + LEADS (Opportunities) ----\nfor (var c=0;c<OPPS.length;c++){\n  var op = OPPS[c];\n  if (inWeek(op[\"Created At\"])) o[\"New Leads\"]++;\n  if (inWeek(op[\"Created At\"]) && norm(op[\"Win Basis\"])===\"proximity_excluded\") o[\"Qualified Proximity Members\"]++;\n  if (norm(op[\"GHL Stage\"]).indexOf(\"whatsapp\")>=0 && inWeek(op[\"Last Stage Change\"])) o[\"WhatsApp Group Joins\"]++;\n\n  if (norm(op[\"Unified Stage\"])!==\"closed won\") continue;\n  if (!inWeek(op[\"Last Stage Change\"])) continue;   // counted in the week it closed\n\n  var rep2 = repBucket(userMap[op[\"Assigned To\"]] || op[\"Assigned To\"]);\n  var basis = norm(op[\"Win Basis\"]);\n  var t = op[\"Opportunity Type\"];\n\n  if (basis===\"catalyst_paid\"){ o[\"Catalyst Total Closed\"]++; if(rep2) o[\"Catalyst by \"+rep2]++; }\n  else if (basis===\"core_paid\"){ o[\"Core Total Closed\"]++; if(rep2) o[\"Core by \"+rep2]++; }\n  else if (basis===\"circle_paid\"){ o[\"Circle Total Closed\"]++; if(rep2) o[\"Circle by \"+rep2]++; }\n  else if (t===\"Capital Engine\"){ o[\"Capital Engine Total Closed\"]++; if(rep2===\"John\") o[\"Capital Engine by John\"]++; }\n  else if (t===\"Nexus\"){ o[\"Nexus Success Total Closed\"]++; }\n  // Pathfinder closes are intentionally NOT bucketed: Sales Engine has no Pathfinder field (see README).\n}\n\nreturn [{ json: o }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -32
+      ],
+      "id": "EXAMPLE_UUID_B77F908F51",
+      "name": "Aggregate Week"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_4E0F029915",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Week",
+              "displayName": "Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "New Leads",
+              "displayName": "New Leads",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Alignment Calls Booked",
+              "displayName": "Alignment Calls Booked",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Alignment Calls Conducted",
+              "displayName": "Alignment Calls Conducted",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Conversion Calls Booked",
+              "displayName": "Conversion Calls Booked",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "PulseCheck Calls Booked",
+              "displayName": "PulseCheck Calls Booked",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "PostCheck Follow-ups",
+              "displayName": "PostCheck Follow-ups",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Qualified Proximity Members",
+              "displayName": "Qualified Proximity Members",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Alignment Calls by John",
+              "displayName": "Alignment Calls by John",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Alignment Calls by Heather",
+              "displayName": "Alignment Calls by Heather",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Alignment Calls by Mitchell",
+              "displayName": "Alignment Calls by Mitchell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Catalyst Total Closed",
+              "displayName": "Catalyst Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Catalyst by John",
+              "displayName": "Catalyst by John",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Catalyst by Heather",
+              "displayName": "Catalyst by Heather",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Catalyst by Mitchell",
+              "displayName": "Catalyst by Mitchell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Core Total Closed",
+              "displayName": "Core Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Core by John",
+              "displayName": "Core by John",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Core by Heather",
+              "displayName": "Core by Heather",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Core by Mitchell",
+              "displayName": "Core by Mitchell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Circle Total Closed",
+              "displayName": "Circle Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Circle by John",
+              "displayName": "Circle by John",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Circle by Heather",
+              "displayName": "Circle by Heather",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Circle by Mitchell",
+              "displayName": "Circle by Mitchell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Capital Engine Total Closed",
+              "displayName": "Capital Engine Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Capital Engine by John",
+              "displayName": "Capital Engine by John",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nexus Success Total Closed",
+              "displayName": "Nexus Success Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "WhatsApp Group Joins",
+              "displayName": "WhatsApp Group Joins",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Combined Membership Close Rate",
+              "displayName": "Combined Membership Close Rate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Startup Close Rate",
+              "displayName": "Startup Close Rate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Total Closes",
+              "displayName": "Total Closes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Weekly Call Target",
+              "displayName": "Weekly Call Target",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Weekly Close Target",
+              "displayName": "Weekly Close Target",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Calls vs Target %",
+              "displayName": "Calls vs Target %",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Closes vs Target %",
+              "displayName": "Closes vs Target %",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Sales Status",
+              "displayName": "Sales Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Alignment Calls by Katie",
+              "displayName": "Alignment Calls by Katie",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Catalyst by Katie",
+              "displayName": "Catalyst by Katie",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Core by Katie",
+              "displayName": "Core by Katie",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Circle by Katie",
+              "displayName": "Circle by Katie",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Capital Engine by Katie",
+              "displayName": "Capital Engine by Katie",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Capital Engine by Heather",
+              "displayName": "Capital Engine by Heather",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Capital Engine by Mitchell",
+              "displayName": "Capital Engine by Mitchell",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Conversion Calls Conducted",
+              "displayName": "Conversion Calls Conducted",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pathfinder Total Closed",
+              "displayName": "Pathfinder Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Leadership Maximizer Total Closed",
+              "displayName": "Leadership Maximizer Total Closed",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1104,
+        -32
+      ],
+      "id": "EXAMPLE_UUID_FE4F88168C",
+      "name": "Upsert Sales Engine"
+    }
+  ],
+  "connections": {
+    "Run Now (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Read Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly (Mon 06:00)": {
+      "main": [
+        [
+          {
+            "node": "Read Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Read Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Appointments": {
+      "main": [
+        [
+          {
+            "node": "Read GHL Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read GHL Users": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Week": {
+      "main": [
+        [
+          {
+            "node": "Upsert Sales Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "Initial Outreach Group Input Sheet Setup Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Manual Input Setup",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/EXAMPLE_RESOURCE_ID_D5FD4BD302/values/Input!A1:I6?valueInputOption=RAW",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"range\":\"Input!A1:I6\",\"majorDimension\":\"ROWS\",\"values\":[[\"selected\",\"contact_id\",\"first_name\",\"last_name\",\"business_email\",\"personal_email\",\"organization\",\"state\",\"linkedin_url\"],[true,\"EXAMPLE_RESOURCE_ID_09336120CA\",\"EXAMPLE_RESOURCE_ID_10653EAA19\",\"EXAMPLE_RESOURCE_ID_062900EC17\",\"person-d2a4c806@example.com\",\"\",\"\",\"\",\"\"],[true,\"EXAMPLE_RESOURCE_ID_ADBD3B412F\",\"SampleContactaebac\",\"EXAMPLE_RESOURCE_ID_AFF96BC0E2\",\"person-4cbae85a@example.com\",\"\",\"\",\"\",\"\"],[true,\"EXAMPLE_RESOURCE_ID_E0AF907EE4\",\"EXAMPLE_RESOURCE_ID_5A4733BFC2\",\"EXAMPLE_RESOURCE_ID_8312042F08\",\"person-48f58a5c@example.com\",\"\",\"\",\"\",\"\"],[true,\"EXAMPLE_RESOURCE_ID_2A23168521\",\"EXAMPLE_RESOURCE_ID_70D5AC876C\",\"EXAMPLE_RESOURCE_ID_7FC4C7FF1A\",\"person-7f739551@example.com\",\"\",\"\",\"\",\"\"],[true,\"EXAMPLE_RESOURCE_ID_BF146198A2\",\"EXAMPLE_RESOURCE_ID_06887E34E5\",\"EXAMPLE_RESOURCE_ID_A2619466D8\",\"person-5fc82050@example.com\",\"\",\"\",\"\",\"\"]]}",
+        "options": {}
+      },
+      "id": "write",
+      "name": "Write Dedicated Input Only",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": false,
+      "position": [
+        256,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Input Setup": {
+      "main": [
+        [
+          {
+            "node": "Write Dedicated Input Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

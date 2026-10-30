@@ -1,0 +1,94 @@
+{
+  "name": "Webhook Event Acknowledgement and Trusted Monitor Wake Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SAMPLE-email-events-v1",
+        "options": {}
+      },
+      "id": "receipt",
+      "name": "Acknowledge Only",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{}}];"
+      },
+      "id": "discard",
+      "name": "Discard Event Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_BD9423FF51"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "wake",
+      "name": "Wake Authenticated Monitor",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        512,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Acknowledge Only": {
+      "main": [
+        [
+          {
+            "node": "Discard Event Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discard Event Body": {
+      "main": [
+        [
+          {
+            "node": "Wake Authenticated Monitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveManualExecutions": false,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "availableInMCP": false
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "name": "LinkedIn Outreach Event Capture and Airtable Sync Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "valley-events",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_D4790BB679",
+      "name": "Valley Webhook2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse a Valley (example.com) webhook into the Raw Valley Events shape.\n// Real payload structure (confirmed from live test):\n//   { event_type, timestamp, user{sender}, prospect{name,company_name,linkedin_url,title,industry,location},\n//     campaign{name,template_name,type}, message{content,sender}, conversation{id,medium},\n//     interest_level, tag... }\nconst body = $json.body || $json;\nconst p   = body.prospect || {};\nconst camp= body.campaign || {};\nconst msg = body.message || {};\nconst conv= body.conversation || {};\n\nconst eventType = body.event_type || 'event';\nconst ts = body.timestamp || msg.timestamp || new Date().toISOString();\nconst linkedin = p.linkedin_url || '';\nconst msgId = msg.message_id || conv.id || '';\n\n// Unique Event ID per event (dedupe key for upsert)\nconst eventId = msgId\n  ? (eventType + '|' + msgId)\n  : (eventType + '|' + (p.id || linkedin || 'unknown') + '|' + ts);\n\n// Tag name (only present on Tag Changed events; shape may vary)\nconst tagName = body.tag || body.tag_name ||\n  (body.tag_changed && (body.tag_changed.name || body.tag_changed.tag)) ||\n  (Array.isArray(body.tags) ? body.tags.join(', ') : '') || '';\n\nreturn [{ json: {\n  'Event ID':          eventId,\n  'Prospect Name':     p.name || '',\n  'Prospect Email':    p.email || '',                 // Valley LinkedIn rarely has email\n  'Prospect LinkedIn': linkedin,\n  'Prospect Company':  p.company_name || p.company || '',\n  'Prospect Title':    p.title || '',\n  'Event Type':        eventType,\n  'Interest Level':    body.interest_level || '',\n  'Tag Name':          tagName,\n  'Response Text':     msg.content || body.response || '',\n  'Campaign Name':     camp.name || '',\n  'Message Medium':    conv.medium || (camp.type || ''),\n  'Valley Timestamp':  ts,\n  'Raw Payload':       JSON.stringify(body)\n}}];"
+      },
+      "id": "EXAMPLE_UUID_094CCCB701",
+      "name": "Parse Valley Event2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_CCEDFAADBA",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Event ID"
+          ],
+          "schema": []
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "EXAMPLE_UUID_694D28B95E",
+      "name": "Upsert Raw Valley Events2",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Valley Webhook -> Airtable\n\n**Setup (push model):** Valley pushes events to n8n; n8n writes them to **Raw Valley Events**.\n\n1. **Activate** this workflow, then copy the **Production** webhook URL from the trigger:\n   `https://example.com/resource/e643ad028a`\n2. In **Valley -> Settings -> Integrations**, paste that URL into the **webhook URL** field.\n3. Fire a test event in Valley, open the execution, and tighten the field paths in **Parse Valley Event** to match Valley's actual payload (the full payload is saved in Raw Payload).\n\n**Notes:** Upsert matches on **Event ID** (a fallback key is generated if Valley sends none). Airtable Event Type is a singleSelect; typecast auto-creates options.",
+        "height": 320,
+        "width": 460
+      },
+      "id": "EXAMPLE_UUID_FC892E8550",
+      "name": "Setup Notes2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -112
+      ]
+    }
+  ],
+  "connections": {
+    "Valley Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Parse Valley Event2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Valley Event2": {
+      "main": [
+        [
+          {
+            "node": "Upsert Raw Valley Events2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}

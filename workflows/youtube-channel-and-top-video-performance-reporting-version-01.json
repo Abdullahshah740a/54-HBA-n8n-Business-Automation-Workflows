@@ -1,0 +1,261 @@
+{
+  "name": "YouTube Channel and Top Video Performance Reporting Automation - version 01",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "EXAMPLE_UUID_27216044A9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/channels?part=statistics&id=UCQO9XluPqQi2JpgCtsaunsw&key=EXAMPLE_SECRET_6E599A7333",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "EXAMPLE_UUID_5FD6653211",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_F566F3E4F8",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Total Subscribers": "={{ $('HTTP Request').item.json.items[0].statistics.subscriberCount }}",
+            "Total Views": "={{ $('HTTP Request').item.json.items[0].statistics.viewCount }}",
+            "Total Videos": "={{ $('HTTP Request').item.json.items[0].statistics.videoCount }}",
+            "Subscribers Gained Today": 0,
+            "Snapshot Date": "={{ $now.toFormat('yyyy-MM-dd') }}",
+            "Top Video Title": "={{ $('Top Video Search').item.json.items[0].snippet.title }}",
+            "Top Video Views": "={{ $('Top Video Stats').item.json.items[0].statistics.viewCount }}",
+            "Top Video URL": "={{ 'https://example.com/resource/dae5a0a5ce' + $('Top Video Search').item.json.items[0].id.videoId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Snapshot Date",
+              "displayName": "Snapshot Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Subscribers",
+              "displayName": "Total Subscribers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Views",
+              "displayName": "Total Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Videos",
+              "displayName": "Total Videos",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Subscribers Gained Today",
+              "displayName": "Subscribers Gained Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Captured At",
+              "displayName": "Captured At",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Top Video Title",
+              "displayName": "Top Video Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Top Video Views",
+              "displayName": "Top Video Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Top Video URL",
+              "displayName": "Top Video URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "EXAMPLE_UUID_B0F8F69078",
+      "name": "Create a record"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=UCQO9XluPqQi2JpgCtsaunsw&order=viewCount&type=video&maxResults=1&key=EXAMPLE_SECRET_6E599A7333",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "EXAMPLE_UUID_11C4FC7256",
+      "name": "Top Video Search"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/youtube/v3/videos?part=statistics&id={{ $('Top Video Search').item.json.items[0].id.videoId }}&key=EXAMPLE_SECRET_6E599A7333",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "EXAMPLE_UUID_C88B8E6AF2",
+      "name": "Top Video Stats"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Top Video Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top Video Search": {
+      "main": [
+        [
+          {
+            "node": "Top Video Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top Video Stats": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

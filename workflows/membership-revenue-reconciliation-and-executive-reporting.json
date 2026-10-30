@@ -1,0 +1,568 @@
+{
+  "name": "Membership Revenue Reconciliation and Executive Reporting Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "EXAMPLE_UUID_357F9B0880",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_832D138DF2",
+      "name": "Schedule Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1328,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.stripe.com/v1/invoices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "paid"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "expand[]",
+              "value": "data.customer"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "starting_after",
+                    "value": "={{ $response.body.data[$response.body.data.length - 1].id }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.has_more }}",
+              "limitPagesFetched": true
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_4A58E55FDE",
+      "name": "Stripe: Paid Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1104,
+        272
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://api.stripe.com/v1/charges",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "expand[]",
+              "value": "data.balance_transaction"
+            },
+            {
+              "name": "expand[]",
+              "value": "data.payment_intent"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "starting_after",
+                    "value": "={{ $response.body.data[$response.body.data.length - 1].id }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.has_more }}",
+              "limitPagesFetched": true
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_94A21C4255",
+      "name": "Stripe: Charges",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -880,
+        272
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://api.stripe.com/v1/subscriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "all"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "expand[]",
+              "value": "data.customer"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "starting_after",
+                    "value": "={{ $response.body.data[$response.body.data.length - 1].id }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.has_more }}",
+              "limitPagesFetched": true
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_C753D95575",
+      "name": "Stripe: Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        272
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_21D6889B88",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "offset",
+                    "value": "={{ $response.body.offset }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.offset }}",
+              "limitPagesFetched": true
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_2E7DA87755",
+      "name": "Airtable: Read Price Map",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        272
+      ],
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ============================================================================\n// SAMPLE · Stripe → Airtable (Membership Revenue) — Classify + Shape\n//\n// DESIGN RULES THAT MUST NOT BE BROKEN (see _STRIPE_REVENUE_FEED_BUILD_SPEC):\n//  1. Tier is resolved ONLY via the Stripe Price Map (price ID -> tier).\n//     NEVER from charge amount, Stripe product, or price nickname. Amounts are\n//     fee-uplifted inconsistently (+3.2% / +0.6% / 0%); the nickname\n//     \"SAMPLE Elite Membership @ 5000\" sits on the Core Fellow product; and one\n//     product serves two tiers.\n//  2. An unmapped price is written as \"⚠️ UNMAPPED\" and raises a Sync\n//     Exception. It is NEVER guessed and NEVER silently dropped.\n//  3. Member counts are DISTINCT Stripe Customer IDs, never row counts —\n//     one customer can hold several subscriptions (Al holds 2).\n//  4. Payments come from PAID INVOICES, not charges. In this account charges\n//     carry invoice=null and no price reference; only the invoice identifies\n//     what was bought. Charges are matched in solely for fee/net + contactId.\n// ============================================================================\nconst nowIso = new Date().toISOString();\nconst D = (ts) => new Date(ts * 1000).toISOString().slice(0, 10);\nconst pages = (n) => $(n).all().flatMap((i) => i.json.data || []);\nconst UNMAPPED = '⚠️ UNMAPPED';\nconst WF = 'SAMPLE · Stripe → Airtable (Membership Revenue)';\n\nconst invoices = pages('Stripe: Paid Invoices');\nconst charges  = pages('Stripe: Charges').filter((c) => c.status === 'succeeded');\nconst subs     = pages('Stripe: Subscriptions');\n\n// ---- price map (the single place tier is decided) ----\nconst map = {};\nfor (const it of $('Airtable: Read Price Map').all()) {\n  for (const r of (it.json.records || [])) {\n    const f = r.fields || {};\n    if (!f['Stripe Price ID']) continue;\n    map[f['Stripe Price ID']] = {\n      tier: f['Tier'] || UNMAPPED,\n      cadence: f['Cadence'] || null,\n      isMember: f['Counts as Membership'] === true,\n    };\n  }\n}\nif (Object.keys(map).length === 0) {\n  throw new Error('Stripe Price Map is empty — refusing to run. Every tier would be UNMAPPED and every tile would be zeroed.');\n}\nconst classify = (pid) => (pid && map[pid]) ? map[pid] : { tier: UNMAPPED, cadence: null, isMember: false };\n\nconst exceptions = [];\nconst seenExc = new Set();\nconst flag = (key, type, sev, detail, src) => {\n  if (seenExc.has(key)) return;\n  seenExc.add(key);\n  exceptions.push({\n    'Exception Key': key, 'Type': type, 'Severity': sev, 'Source Workflow': WF,\n    'Detail': detail, 'Source Record': src, 'First Seen': nowIso,\n    'Last Seen': nowIso, 'Resolved': false,\n  });\n};\n\n// ---- charge lookup: customer + amount + same day ----\nconst chIdx = new Map();\nfor (const c of charges) chIdx.set(`${c.customer}|${c.amount}|${D(c.created)}`, c);\nconst contactIdOf = (c) => (c && c.payment_intent && typeof c.payment_intent === 'object'\n  && c.payment_intent.metadata) ? (c.payment_intent.metadata.contactId || null) : null;\n\n// ---- identity index: GHL contactId per Stripe customer ----\n// GHL stamps contactId onto every PaymentIntent it creates, including the $39.97/$42.99\n// application fees. So a customer whose membership payment predates GHL payment links\n// (Al Fenoy, 2025-11-21, empty metadata) still resolves via a later charge on the SAME\n// Stripe customer. Verified 2026-08-02: xlbkrkQlFsmCwKXvlpkJ = Al Fenoy in GHL.\nconst ghlByCustomer = {};\nfor (const c of charges) {\n  const id = contactIdOf(c);\n  if (id && c.customer && !ghlByCustomer[c.customer]) ghlByCustomer[c.customer] = id;\n}\n\n// ---- PAYMENTS: one row per paid invoice ----\nconst payments = [];\nfor (const inv of invoices) {\n  const line = (inv.lines && inv.lines.data && inv.lines.data[0]) || {};\n  const pid = (line.price && line.price.id)\n    || (line.pricing && line.pricing.price_details && line.pricing.price_details.price) || null;\n  const cls = classify(pid);\n  if (cls.tier === UNMAPPED) {\n    flag(`unmapped-price:${pid}`, 'Unmapped Price', '🔴 Blocks a number',\n      `Paid invoice ${inv.id} uses Stripe price ${pid}, which has no row in Stripe Price Map. `\n      + `Its revenue and tier are NOT counted until someone adds that row. `\n      + `Do not infer the tier from the amount — add the price to the map.`, pid || inv.id);\n  }\n  const ch   = chIdx.get(`${inv.customer && inv.customer.id ? inv.customer.id : inv.customer}|${inv.amount_paid}|${D(inv.created)}`) || null;\n  const bt   = (ch && typeof ch.balance_transaction === 'object') ? ch.balance_transaction : null;\n  const cust = (inv.customer && typeof inv.customer === 'object') ? inv.customer : {};\n  const custId = cust.id || inv.customer || null;\n  // identity: this charge's contactId, else any charge on the same Stripe customer\n  const ghl  = contactIdOf(ch) || (custId ? (ghlByCustomer[custId] || null) : null);\n  const email = cust.email || inv.customer_email || null;\n  if (!ghl && !email) {\n    flag(`no-identity:${inv.id}`, 'Unresolved Identity', '🟡 Degrades a number',\n      `Paid invoice ${inv.id} has no GHL contactId in payment_intent.metadata and no customer email, `\n      + `so this payment cannot be joined to a contact.`, inv.id);\n  }\n  payments.push({\n    'Stripe Invoice ID': inv.id,\n    'Paid At': D(inv.created),\n    'Gross Amount': (inv.amount_paid || 0) / 100,\n    'Fee': bt ? bt.fee / 100 : null,\n    'Net Amount': bt ? example.com / 100 : null,\n    'Currency': (inv.currency || '').toUpperCase(),\n    'Stripe Customer ID': custId,\n    'Customer Name': cust.name || inv.customer_name || null,\n    'Customer Email': email,\n    'Stripe Price ID': pid,\n    'Tier': cls.tier,\n    'Counts as Membership': cls.isMember,\n    'Matched Charge ID': ch ? ch.id : null,\n    'GHL Contact ID': ghl,\n    'Description': inv.description || line.description || null,\n    'Last Synced': nowIso,\n  });\n}\n\n// ---- MEMBERS: one row per subscription ----\nconst members = [];\nfor (const s of subs) {\n  const price = (s.items && s.items.data && s.items.data[0] && s.items.data[0].price) || {};\n  const pid = price.id || null;\n  const cls = classify(pid);\n  if (cls.tier === UNMAPPED) {\n    flag(`unmapped-price:${pid}`, 'Unmapped Price', '🔴 Blocks a number',\n      `Subscription ${s.id} uses Stripe price ${pid}, which has no row in Stripe Price Map. `\n      + `This subscriber is NOT counted in paid members or ARR until that row is added.`, pid || s.id);\n  }\n  const cust = (s.customer && typeof s.customer === 'object') ? s.customer : {};\n  const custId = cust.id || s.customer || null;\n  const amt = (price.unit_amount || 0) / 100;\n  const iv = (price.recurring && price.recurring.interval) || null;\n  const ct = (price.recurring && price.recurring.interval_count) || 1;\n  const perYear = iv === 'month' ? 12 / ct : iv === 'week' ? 52 / ct : iv === 'day' ? 365 / ct : 1 / ct;\n  const SampleContact17239 = Math.round(amt * perYear * 100) / 100;\n  members.push({\n    'Stripe Subscription ID': s.id,\n    'Stripe Customer ID': custId,\n    'Customer Name': cust.name || null,\n    'Customer Email': cust.email || null,\n    'Status': s.status,\n    'Stripe Price ID': pid,\n    'Tier': cls.tier,\n    'Cadence': cls.cadence || (iv === 'month' ? 'Monthly' : iv === 'year' ? 'Annual' : null),\n    'Unit Amount': amt,\n    'Annualized Value': SampleContact17239,\n    'Is Active Paid Member': s.status === 'active' && cls.isMember,\n    'Current Period Start': s.current_period_start ? D(s.current_period_start) : null,\n    'Current Period End': s.current_period_end ? D(s.current_period_end) : null,\n    'Started At': s.start_date ? D(s.start_date) : null,\n    'Canceled At': s.canceled_at ? D(s.canceled_at) : null,\n    'GHL Contact ID': (custId && ghlByCustomer[custId]) || null,\n    'Last Synced': nowIso,\n  });\n}\n\n// ---- THE THREE MEASURES (never conflate these) ----\nconst active    = members.filter((m) => m['Is Active Paid Member']);\nconst distinct  = (rows) => new Set(rows.map((m) => m['Stripe Customer ID']).filter(Boolean)).size;\nconst collected = Math.round(payments.filter((p) => p['Counts as Membership'])\n                    .reduce((s, p) => s + p['Gross Amount'], 0) * 100) / 100;\nconst arr       = Math.round(active.reduce((s, m) => s + m['Annualized Value'], 0) * 100) / 100;\nconst paidCount = distinct(active);\nconst byTier    = (t) => distinct(active.filter((m) => m['Tier'] === t));\n\n// Guardrail: never let a failed/empty Stripe read silently zero a live tile.\nif (invoices.length === 0 && subs.length === 0) {\n  throw new Error('Stripe returned zero invoices AND zero subscriptions — refusing to write, this would zero the CEO tiles.');\n}\n\nconst tiles = [\n  { id: 'EXAMPLE_AIRTABLE_ID_5995E358AB', fields: { 'Actual': collected,\n      'Why Status?': `Collected to date, auto-fed from Stripe paid invoices (last sync ${nowIso}). `\n        + `This is money actually received — NOT the $${arr.toLocaleString()} ARR run-rate, and NOT `\n        + `members × $5,000. Tier comes from the Stripe Price Map, never from the charge amount.` } },\n  { id: 'EXAMPLE_AIRTABLE_ID_860149720A', fields: { 'Actual': byTier('3 · Core ($5k)') } },\n  { id: 'EXAMPLE_AIRTABLE_ID_2FB4AC8234', fields: { 'Actual': byTier('2 · Catalyst ($1k)') } },\n  { id: 'EXAMPLE_AIRTABLE_ID_1EE9AE5F36', fields: { 'Actual': byTier('4 · Circle ($10k)') } },\n  { id: 'EXAMPLE_AIRTABLE_ID_7BC08C558A', fields: { 'Actual': paidCount } },\n];\n\nreturn [{ json: { members, payments, exceptions, tiles,\n  measures: { collected, arr, paidCount,\n    invoices: invoices.length, charges: charges.length, subs: subs.length,\n    unmapped: exceptions.filter((e) => e.Type === 'Unmapped Price').length } } }];\n"
+      },
+      "id": "EXAMPLE_UUID_D8127B03F6",
+      "name": "Classify + Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $('Classify + Shape').first().json.members || [];\nconst chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };\nreturn chunk(src, 10).map((b) => ({ json: {\n  records: b.map((f) => ({ fields: f })),\n  performUpsert: { fieldsToMergeOn: ['Stripe Subscription ID'] },\n  typecast: true,\n} }));"
+      },
+      "id": "EXAMPLE_UUID_7E106BA601",
+      "name": "Build Member Batches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_A1BE8EF434",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 1100
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_07F03BB256",
+      "name": "Airtable: Upsert Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $('Classify + Shape').first().json.payments || [];\nconst chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };\nreturn chunk(src, 10).map((b) => ({ json: {\n  records: b.map((f) => ({ fields: f })),\n  performUpsert: { fieldsToMergeOn: ['Stripe Invoice ID'] },\n  typecast: true,\n} }));"
+      },
+      "id": "EXAMPLE_UUID_D444331E0C",
+      "name": "Build Payment Batches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_2DB524E6EC",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 1100
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_88F2D04CBF",
+      "name": "Airtable: Upsert Payments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        192
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $('Classify + Shape').first().json.exceptions || [];\nconst chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };\nreturn chunk(src, 10).map((b) => ({ json: {\n  records: b.map((f) => ({ fields: f })),\n  performUpsert: { fieldsToMergeOn: ['Exception Key'] },\n  typecast: true,\n} }));"
+      },
+      "id": "EXAMPLE_UUID_EB1AC19D11",
+      "name": "Build Exception Batches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_C5C313C38A",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 1100
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_FBD0BF639D",
+      "name": "Airtable: Upsert Sync Exceptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        368
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('Classify + Shape').first().json.tiles || [];\nreturn [{ json: { records: t, typecast: true } }];"
+      },
+      "id": "EXAMPLE_UUID_0C2EF77E70",
+      "name": "Build CEO Tile Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_E64F75EBE2",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 1100
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_F57EC1997E",
+      "name": "Airtable: Update CEO Tiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        544
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Paid Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Paid Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Paid Invoices": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Charges",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Charges": {
+      "main": [
+        [
+          {
+            "node": "Stripe: Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stripe: Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Airtable: Read Price Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable: Read Price Map": {
+      "main": [
+        [
+          {
+            "node": "Classify + Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify + Shape": {
+      "main": [
+        [
+          {
+            "node": "Build Member Batches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Payment Batches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Exception Batches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build CEO Tile Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Member Batches": {
+      "main": [
+        [
+          {
+            "node": "Airtable: Upsert Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payment Batches": {
+      "main": [
+        [
+          {
+            "node": "Airtable: Upsert Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Exception Batches": {
+      "main": [
+        [
+          {
+            "node": "Airtable: Upsert Sync Exceptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build CEO Tile Updates": {
+      "main": [
+        [
+          {
+            "node": "Airtable: Update CEO Tiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

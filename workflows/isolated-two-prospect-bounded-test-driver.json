@@ -1,0 +1,174 @@
+{
+  "name": "Isolated Two Prospect Bounded Test Driver Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "input",
+      "name": "Internal Batch Input",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input=$input.first().json;\nif(typeof input.run_id!=='string'||!input.run_id.trim())throw new Error('RUN_ID_REQUIRED');\nif($runIndex>=29)throw new Error('BATCH_INVOCATION_LIMIT');\nif($runIndex>0&&(input.lock_retained!==false||input.next_step_allowed!==true||input.status!=='ready'))throw new Error('UNSAFE_WORKER_CONTINUATION');\nreturn [{json:{run_id:input.run_id}}];"
+      },
+      "id": "guard",
+      "name": "Bound the Worker Loop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_31EA172363"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "step",
+      "name": "Run One Checkpointed Step",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "clean",
+              "leftValue": "={{ $json.next_step_allowed === true && $json.lock_retained === false && $json.status === \"ready\" }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "continue",
+      "name": "Clean Next Step",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "receipt",
+      "name": "Return Batch Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        144
+      ]
+    }
+  ],
+  "connections": {
+    "Internal Batch Input": {
+      "main": [
+        [
+          {
+            "node": "Bound the Worker Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bound the Worker Loop": {
+      "main": [
+        [
+          {
+            "node": "Run One Checkpointed Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run One Checkpointed Step": {
+      "main": [
+        [
+          {
+            "node": "Clean Next Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Next Step": {
+      "main": [
+        [
+          {
+            "node": "Bound the Worker Loop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Batch Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

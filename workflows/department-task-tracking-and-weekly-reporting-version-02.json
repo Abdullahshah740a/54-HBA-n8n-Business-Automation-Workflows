@@ -1,0 +1,284 @@
+{
+  "name": "Department Task Tracking and Weekly Reporting Automation - version 02",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "EXAMPLE_UUID_62688A58A5",
+      "name": "Run Now (Manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_B8C114DCDA",
+      "name": "Weekly (Mon 06:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== EDIT THIS LIST =====\n// One entry per department. projectGid = the Asana project's numeric ID\n// (open the project in Asana; the number in the URL .../0/<projectGid>/list is it).\nconst DEPARTMENTS = [\n  { department: 'PR',                 projectGid: 'REPLACE_PROJECT_GID_1' },\n  { department: 'Legal',              projectGid: 'REPLACE_PROJECT_GID_2' },\n  { department: 'Customer Success',   projectGid: 'REPLACE_PROJECT_GID_3' },\n  { department: 'Operations',         projectGid: 'REPLACE_PROJECT_GID_4' },\n  { department: 'HR / Leadership',    projectGid: 'REPLACE_PROJECT_GID_5' }\n];\n\nreturn DEPARTMENTS.map(d => ({ json: d }));"
+      },
+      "id": "EXAMPLE_UUID_EB553CB0FE",
+      "name": "Define Departments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://example.com/resource/d968d43213 $json.projectGid }}&opt_fields=name,completed,completed_at,due_on,permalink_url&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "asanaApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_525D013983",
+      "name": "Asana: Get Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Buckets per department, computed from the Asana task list for THIS item.\nconst dept = $('Define Departments').item.json.department;\nconst tasks = ($json.data) || [];\n\nconst now    = new Date();\nconst today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());\nconst in7    = new Date(today); in7.setDate(in7.getDate() + 7);\nconst last7  = new Date(today); last7.setDate(last7.getDate() - 7);\n\nlet completedLastWeek = 0, overdue = 0, upcoming = 0, totalOpen = 0;\n\nfor (const t of tasks) {\n  const completed   = !!t.completed;\n  const completedAt = t.completed_at ? new Date(t.completed_at) : null;\n  const dueOn       = t.due_on ? new Date(t.due_on + 'T00:00:00') : null;\n\n  if (completed) {\n    if (completedAt && completedAt >= last7 && completedAt <= now) completedLastWeek++;\n  } else {\n    totalOpen++;\n    if (dueOn && dueOn <  today) overdue++;\n    if (dueOn && dueOn >= today && dueOn <= in7) upcoming++;\n  }\n}\n\n// Monday of the current week as the snapshot date\nconst wk  = new Date(today);\nconst dow = wk.getDay();                 // 0=Sun .. 6=Sat\nwk.setDate(wk.getDate() + (dow === 0 ? -6 : 1 - dow));\nconst weekOf = wk.toISOString().slice(0, 10);\n\nreturn { json: {\n  'Department':          dept,\n  'Week Of':             weekOf,\n  'Completed Last Week': completedLastWeek,\n  'Overdue':             overdue,\n  'Upcoming Next Week':  upcoming,\n  'Total Open':          totalOpen,\n  'Snapshot Key':        weekOf + '|' + dept\n} };"
+      },
+      "id": "EXAMPLE_UUID_87CF87B340",
+      "name": "Bucket Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_40EE527845",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Department",
+              "displayName": "Department",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Week Of",
+              "displayName": "Week Of",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Completed Last Week",
+              "displayName": "Completed Last Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Overdue",
+              "displayName": "Overdue",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Upcoming Next Week",
+              "displayName": "Upcoming Next Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Open",
+              "displayName": "Total Open",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Snapshot Key",
+              "displayName": "Snapshot Key",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "EXAMPLE_UUID_86015359B2",
+      "name": "Upsert Department Weekly",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WF5 — Asana Dept Tasks → Airtable\n\n**Before running:**\n1. Create the Asana API credential, then re-select it on the **Asana: Get Tasks** node (it imports as a placeholder).\n2. Edit the **Define Departments** code node: one row per department + its Asana `projectGid`.\n3. In Airtable, create a table **Department Weekly Snapshot** with these fields, then set it on the **Upsert** node:\n   - `Department` (Single line text or Single select)\n   - `Week Of` (Date)\n   - `Completed Last Week` (Number)\n   - `Overdue` (Number)\n   - `Upcoming Next Week` (Number)\n   - `Total Open` (Number)\n   - `Snapshot Key` (Single line text) ← match field\n\n**Buckets:** Completed Last Week = done in last 7d · Overdue = open & past due · Upcoming = open & due in next 7d.\n\n**Note:** `limit=100` per project. If any department has >100 tasks, enable pagination on the HTTP node.",
+        "height": 360,
+        "width": 452
+      },
+      "id": "EXAMPLE_UUID_4D95D8BA7A",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        368
+      ]
+    }
+  ],
+  "connections": {
+    "Run Now (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Define Departments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly (Mon 06:00)": {
+      "main": [
+        [
+          {
+            "node": "Define Departments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Departments": {
+      "main": [
+        [
+          {
+            "node": "Asana: Get Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana: Get Tasks": {
+      "main": [
+        [
+          {
+            "node": "Bucket Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bucket Tasks": {
+      "main": [
+        [
+          {
+            "node": "Upsert Department Weekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

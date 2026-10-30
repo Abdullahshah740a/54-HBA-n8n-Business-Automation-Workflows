@@ -1,0 +1,218 @@
+{
+  "name": "Approved Recipient Group Staging Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "internal-stage-group",
+      "name": "Internal Stage Group",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const v=$input.first().json;\nif(!v.run_id||!v.campaign_id||!v.grant_id||!Array.isArray(v.contact_ids)||!v.contact_ids.length||v.contact_ids.length>5||new Set(v.contact_ids).size!==v.contact_ids.length)throw new Error('BOUNDED_APPROVED_GROUP_REQUIRED');\nreturn [{json:{run_id:v.run_id,campaign_id:v.campaign_id,grant_id:v.grant_id,contact_ids:v.contact_ids,index:0,receipts:[]}}];"
+      },
+      "id": "initialize-stage-group",
+      "name": "Initialize Stage Group",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$input.first().json;\nif(context.index>=5||context.index>=context.contact_ids.length)throw new Error('STAGE_GROUP_LIMIT');\nreturn [{json:{context,request:{run_id:context.run_id,campaign_id:context.campaign_id,grant_id:context.grant_id,contact_id:context.contact_ids[context.index]}}}];"
+      },
+      "id": "prepare-next-stage",
+      "name": "Prepare Next Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_A277C4533B"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.request.run_id }}",
+            "campaign_id": "={{ $json.request.campaign_id }}",
+            "grant_id": "={{ $json.request.grant_id }}",
+            "contact_id": "={{ $json.request.contact_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "stage-one-approved-person",
+      "name": "Stage One Approved Person",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const context=$('Prepare Next Stage').all(0,$runIndex)[0].json.context,receipt=$input.first().json;\nif(receipt.run_id!==context.run_id||receipt.contact_id!==context.contact_ids[context.index]||receipt.status!=='staged'||receipt.lock_retained!==false||receipt.campaign_activated!==false||!receipt.remote_lead_id)throw new Error('STAGE_GROUP_STOPPED_RECONCILE');\ncontext.receipts.push(receipt);context.index++;return [{json:context}];"
+      },
+      "id": "check-stage-receipt",
+      "name": "Check Stage Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "more",
+              "leftValue": "={{ $json.index < $json.contact_ids.length }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "more-approved-people",
+      "name": "More Approved People",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const v=$input.first().json;return [{json:{run_id:v.run_id,campaign_id:v.campaign_id,grant_id:v.grant_id,status:'staged',staged_count:v.receipts.length,receipts:v.receipts,sending_authorized:false,campaign_activated:false}}];"
+      },
+      "id": "return-staged-group",
+      "name": "Return Staged Group",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Internal Stage Group": {
+      "main": [
+        [
+          {
+            "node": "Initialize Stage Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Stage Group": {
+      "main": [
+        [
+          {
+            "node": "Prepare Next Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Next Stage": {
+      "main": [
+        [
+          {
+            "node": "Stage One Approved Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage One Approved Person": {
+      "main": [
+        [
+          {
+            "node": "Check Stage Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Stage Receipt": {
+      "main": [
+        [
+          {
+            "node": "More Approved People",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "More Approved People": {
+      "main": [
+        [
+          {
+            "node": "Prepare Next Stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Staged Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "name": "Initial Recipient Group No Send Readiness Evidence Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-read-only-proof",
+      "name": "Manual Read-Only Proof",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto=require('crypto');\n\nconst deployment={};\nreturn [{json:{leads:[{\"contact_id\":\"EXAMPLE_RESOURCE_ID_09336120CA\",\"first_name\":\"EXAMPLE_RESOURCE_ID_10653EAA19\",\"last_name\":\"EXAMPLE_RESOURCE_ID_062900EC17\",\"business_email\":\"person-d2a4c806@example.com\",\"aliases\":[\"person-fd2c2875@example.com\",\"person-d2a4c806@example.com\",\"person-7b9d14cb@example.com\"]},{\"contact_id\":\"EXAMPLE_RESOURCE_ID_ADBD3B412F\",\"first_name\":\"SampleContactaebac\",\"last_name\":\"EXAMPLE_RESOURCE_ID_AFF96BC0E2\",\"business_email\":\"person-4cbae85a@example.com\",\"aliases\":[\"person-6a58cd21@example.com\",\"person-4cbae85a@example.com\"]},{\"contact_id\":\"EXAMPLE_RESOURCE_ID_E0AF907EE4\",\"first_name\":\"EXAMPLE_RESOURCE_ID_5A4733BFC2\",\"last_name\":\"EXAMPLE_RESOURCE_ID_8312042F08\",\"business_email\":\"person-48f58a5c@example.com\",\"aliases\":[\"person-00ca3412@example.com\",\"person-48f58a5c@example.com\",\"person-aa0e1a25@example.com\",\"person-0599da71@example.com\",\"person-9db5ea90@example.com\"]},{\"contact_id\":\"EXAMPLE_RESOURCE_ID_2A23168521\",\"first_name\":\"EXAMPLE_RESOURCE_ID_70D5AC876C\",\"last_name\":\"EXAMPLE_RESOURCE_ID_7FC4C7FF1A\",\"business_email\":\"person-7f739551@example.com\",\"aliases\":[\"person-de30404e@example.com\",\"person-7f739551@example.com\",\"person-31decc28@example.com\",\"person-484726c9@example.com\"]},{\"contact_id\":\"EXAMPLE_RESOURCE_ID_BF146198A2\",\"first_name\":\"EXAMPLE_RESOURCE_ID_06887E34E5\",\"last_name\":\"EXAMPLE_RESOURCE_ID_A2619466D8\",\"business_email\":\"person-5fc82050@example.com\",\"aliases\":[\"person-5aa96718@example.com\",\"person-5fc82050@example.com\"]}],campaign_id:\"EXAMPLE_UUID_B2700865CD\",campaign_only:false}}];"
+      },
+      "id": "exact-first-five",
+      "name": "Exact First Five",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_8313754621"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "leads": "={{ $json.leads }}",
+            "campaign_id": "={{ $json.campaign_id }}",
+            "campaign_only": false
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "read-fresh-first-group",
+      "name": "Read Fresh First Group",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_90B9310D18"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timezone": "America/Detroit"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "read-current-sender",
+      "name": "Read Current Sender",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto=require('crypto');\n\nconst deployment={};\nconst fresh=$('Read Fresh First Group').first().json,sender=$input.first().json;return [{json:{kind:'hosted-read-only-proof',checked_at:new Date().toISOString(),fresh,sender,prospect_sends:0,provider_purchases:0}}];"
+      },
+      "id": "no-send-proof-receipt",
+      "name": "No-Send Proof Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Read-Only Proof": {
+      "main": [
+        [
+          {
+            "node": "Exact First Five",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exact First Five": {
+      "main": [
+        [
+          {
+            "node": "Read Fresh First Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Fresh First Group": {
+      "main": [
+        [
+          {
+            "node": "Read Current Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Current Sender": {
+      "main": [
+        [
+          {
+            "node": "No-Send Proof Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

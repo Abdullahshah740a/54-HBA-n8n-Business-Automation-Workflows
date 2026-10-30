@@ -1,0 +1,120 @@
+{
+  "name": "Read Only AI Model Availability Evidence Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "55 6 29 10 *"
+            }
+          ]
+        }
+      },
+      "id": "time",
+      "name": "One Read",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if(Math.abs(Date.now()-Date.parse(\"2026-10-29T06:55:00+00:00\"))>90000)throw new Error(\"READ_WINDOW_EXPIRED\");return [{json:{}}];"
+      },
+      "id": "bound",
+      "name": "Bound Read",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/models",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "read",
+      "name": "Read Available Models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": false,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$input.first().json;if(r.statusCode!==200||!Array.isArray(r.body?.data))throw new Error(\"MODEL_LIST_UNAVAILABLE\");const ids=r.body.data.map(m=>m.id);return [{json:{checked_at:new Date().toISOString(),models_present:[\"gpt-5.6-sol\",\"gpt-4.1-2025-04-14\"].filter(id=>ids.includes(id)),visible_count:ids.length}}];"
+      },
+      "id": "receipt",
+      "name": "Availability Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "One Read": {
+      "main": [
+        [
+          {
+            "node": "Bound Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bound Read": {
+      "main": [
+        [
+          {
+            "node": "Read Available Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Available Models": {
+      "main": [
+        [
+          {
+            "node": "Availability Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "UTC",
+    "availableInMCP": false
+  }
+}

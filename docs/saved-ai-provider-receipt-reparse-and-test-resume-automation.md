@@ -1,0 +1,65 @@
+# Saved AI Provider Receipt Reparse and Test Resume Automation
+
+Reprocesses retained provider responses from a failed isolated test before continuing remaining permitted work.
+
+> Sanitized workflow export. Deployment testing has not been performed.
+
+## Functionalities
+
+- **Saved-response replay:** Reparses the existing receipts without a new network call for the replay itself.
+- **Original evidence retained:** Keeps the original receipts and previously recorded usage unchanged.
+- **Controlled continuation:** Refreshes current exclusions and resumes only the remaining steps under the same combined budget.
+
+## Workflow
+
+1. Validate the fixed invocation window and expected held state.
+2. Refresh identity or exclusion evidence.
+3. Claim the isolated row and prepare the narrowly scoped revision.
+4. Save the revision without resetting prior usage or receipts.
+5. Run the remaining allowed test steps and return the combined receipt.
+
+## Tools
+
+| Tool | Purpose |
+| --- | --- |
+| n8n | Workflow routing, internal calls and execution context. |
+| n8n Data Tables | Saved operating state, revisions, ownership and receipts. |
+| JavaScript | Validation, state transitions and result shaping. |
+| Fresh Exclusion Reader | Refreshes identity and suppression evidence. |
+| Isolated Bounded Driver | Continues the approved remaining provider steps. |
+
+## Repository contents
+
+- [`workflows/saved-ai-provider-receipt-reparse-and-test-resume.json`](../workflows/saved-ai-provider-receipt-reparse-and-test-resume.json)
+
+| Export | Nodes | Original export status | Version notes |
+| --- | ---: | --- | --- |
+| `saved-ai-provider-receipt-reparse-and-test-resume.json` | 11 | Inactive | Supplied export |
+
+## Setup
+
+1. Import the selected JSON file into a compatible n8n instance. All published exports are inactive.
+2. Open each node and reconnect the required n8n credentials. Original credential bindings were removed.
+3. Replace `EXAMPLE_*` resource identifiers, `example.com` endpoints, synthetic contacts and deployment-specific settings with your own configuration.
+4. Create the required destination sheets/tables, field mappings, views and state-store schemas before writing any records.
+5. Rebind Execute Workflow nodes to the corresponding workflows imported into your instance. Original workflow IDs are not portable.
+6. Review prompts, scoring criteria, approval rules, spending caps and historical time windows. Keep the existing approval and no-send controls in place.
+7. Use synthetic input to verify branches and destination mappings, then enable the appropriate trigger when the configuration is complete.
+
+## Related workflow dependencies
+
+- [fresh-prospect-exclusion-and-campaign-membership-evidence-automation](fresh-prospect-exclusion-and-campaign-membership-evidence-automation.md) — import and select its workflow in the caller node.
+- [isolated-two-prospect-bounded-test-driver-automation](isolated-two-prospect-bounded-test-driver-automation.md) — import and select its workflow in the caller node.
+
+## Export limitations and configuration notes
+
+- Inactive no-send recovery test. Replaying a saved response is not a new model run; subsequent worker continuation may still use the remaining authorized provider allowance.
+- Historical proof receipts, identity anchors, hashes and time windows were sanitized. Regenerate evidence in an isolated environment; these files do not constitute live production proof.
+- Workflow export state describes the supplied file only; successful live execution has not been verified.
+- Embedded client/prospect examples were replaced. Cached execution data, pinned data and credential bindings were removed.
+- Resource IDs, URLs and evidence hashes were replaced for publication. Some fixtures and historical recovery scenarios require new test data and regenerated evidence.
+- API credentials belong in n8n credential storage or the configured secret store. Do not commit live keys, contact lists or execution receipts.
+
+## Validation
+
+The preparation checks parse the JSON, preserve node counts and check connection targets. Code-node syntax is checked separately without executing the workflow. These checks do not verify provider access, business results or production readiness.

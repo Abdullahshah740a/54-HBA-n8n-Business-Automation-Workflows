@@ -1,0 +1,95 @@
+{
+  "name": "LinkedIn Outreach Event Validation and Meridian Reporting Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "valley-events",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_D4790BB679",
+      "name": "Valley Webhook2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const VALLEY_EVENT_TYPES = [\"PROSPECT_ADDED_TO_CAMPAIGN\",\"SEND_ANY_NEW_OUTREACH\",\"PROSPECT_RESPONSE\",\"SEND_INTERESTED_RESPONSES\",\"SEND_MIGHT_BE_INTERESTED_RESPONSES\",\"SEND_NOT_INTERESTED_RESPONSES\",\"SEND_COPY_FOR_MESSAGES_AFTER_APPROVAL\"];\nfunction valleyEventIdentity(body) {\n  if (!body || typeof body !== 'object' || !VALLEY_EVENT_TYPES.includes(body.event_type)) {\n    throw new Error('unsupported_valley_event_type');\n  }\n  const timestamp = body.timestamp || body.message?.timestamp;\n  if (typeof timestamp !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}T/.test(timestamp)\n    || !Number.isFinite(Date.parse(timestamp))) throw new Error('invalid_valley_timestamp');\n  const occurred_at = new Date(timestamp).toISOString();\n  if (Date.parse(occurred_at) > Date.now() + 300_000) throw new Error('future_valley_timestamp');\n  const prospect = body.prospect?.id || body.prospect?.linkedin_url;\n  if (typeof prospect !== 'string' || !prospect || prospect.length > 2048) {\n    throw new Error('missing_valley_event_identity');\n  }\n  // A conversation ID alone is NOT an event ID: multiple replies share it.\n  const identity = JSON.stringify([\n    'valley-event-v1', body.event_type, occurred_at, prospect,\n    body.campaign?.id || body.campaign?.name || '',\n    body.message?.message_id || body.conversation?.id || '', body.message_index ?? '',\n  ]);\n  return { identity, event_type: body.event_type, occurred_at };\n}\nconst fact = valleyEventIdentity($json.body || $json);\nconst event_key = require('crypto').createHash('sha256').update(fact.identity).digest('hex');\nreturn [{json: {events: [{event_key, event_type: fact.event_type, occurred_at: fact.occurred_at}]}}];"
+      },
+      "id": "EXAMPLE_UUID_094CCCB701",
+      "name": "Aggregate Valley Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.com/resource/a64b245a3b",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "EXAMPLE_UUID_C649DB2C5B",
+      "name": "Write Meridian Valley Counts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "position": [
+        224,
+        -304
+      ]
+    }
+  ],
+  "connections": {
+    "Valley Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Valley Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Valley Event": {
+      "main": [
+        [
+          {
+            "node": "Write Meridian Valley Counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "executionTimeout": 120
+  }
+}

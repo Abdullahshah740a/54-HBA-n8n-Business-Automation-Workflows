@@ -1,0 +1,333 @@
+{
+  "name": "Department Task Tracking and Weekly Reporting Automation - version 01",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_87D0525ECC",
+      "name": "Loop Over Departments",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "content": "\n**What changed vs the old version & why it never needs hand-fixing again:**\n1. **Loop Over Departments** (batch size 1) now sits between *Define Departments* and the HTTP node. It processes exactly ONE department per pass, so paginated pages can't get mixed between departments.\n2. **Asana: Get Tasks** now has **pagination ON** (Response Contains Next URL → `{{ $response.body.next_page?.uri }}`). It follows Asana's `next_page` until there are no more pages, so a project with 100 / 500 / 5000 tasks is fully fetched. `completed_since` (last 7 days) keeps the completed backlog from growing the payload forever; pagination covers the rare case of >100 *open* tasks.\n3. **Bucket Tasks** is now **Run Once for All Items** and concatenates every page's `data[]` before counting. 1 page or 50 pages are handled identically — no double-writes.\n4. Wiring: Upsert loops back into *Loop Over Departments*; the loop's **done** output (index 0) is intentionally left unconnected (end of run).\n\n**Buckets:** Completed Last Week = done in last 7d · Overdue = open & past due · Upcoming = open & due in next 7d · Total Open = all incomplete.\n\n**Match field:** `Snapshot Key` (= `Week Of | Department`).\n\n**Data hygiene (report to Sample, not a code fix):** most open Asana tasks have no due date, so Overdue/Upcoming stay sparse and Status reads red until the team sets due dates.",
+        "height": 420,
+        "width": 460
+      },
+      "id": "EXAMPLE_UUID_FE9CF93F19",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_8BD716C704",
+      "name": "Weekly (Mon 06:00)1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// SAMPLE Asana department projects (workspace 1211278136475640), pulled live 2026-06-13.\nconst DEPARTMENTS = [\n  { department: 'Human Resources',       projectGid: '1211616183932936' }, // 07 Human Resources & Team Alignment\n  { department: 'Marketing',             projectGid: '1211616183932955' }, // 02 Marketing\n  { department: 'Offers',                projectGid: '1211616183932967' }, // 03 Offers\n  { department: 'Sales',                 projectGid: '1211616183932975' }, // 04 Sales\n  { department: 'Client Relations',      projectGid: '1211616183932986' }, // 05 Client Relations\n  { department: 'Business Partnerships', projectGid: '1211616183932997' }  // 06 Business Partnerships\n];\n\nreturn DEPARTMENTS.map(d => ({ json: d }));"
+      },
+      "id": "EXAMPLE_UUID_8EF24F5939",
+      "name": "Define Departments1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://example.com/resource/d968d43213 $json.projectGid }}&opt_fields=name,completed,completed_at,due_on,permalink_url&completed_since={{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "asanaApi",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.next_page ? $response.body.next_page.uri : '' }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.next_page }}",
+              "limitPagesFetched": true,
+              "maxRequests": 20
+            }
+          }
+        }
+      },
+      "id": "EXAMPLE_UUID_C044476583",
+      "name": "Asana: Get Tasks1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1456,
+        672
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate ALL pages for the CURRENT department. The Loop isolates one dept per\n// pass, so every incoming item (page) belongs to the same department. This is\n// pagination-proof: 1 page or 50 pages are handled identically.\nconst dept = $('Loop Over Departments').all()[0].json.department;\n\nlet tasks = [];\nfor (const it of $input.all()) {\n  const d = it.json.data;\n  if (Array.isArray(d)) tasks = tasks.concat(d);\n}\n\nconst now    = new Date();\nconst today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());\nconst in7    = new Date(today); in7.setDate(in7.getDate() + 7);\nconst last7  = new Date(today); last7.setDate(last7.getDate() - 7);\n\nlet completedLastWeek = 0, overdue = 0, upcoming = 0, totalOpen = 0;\n\nfor (const t of tasks) {\n  const completed   = !!t.completed;\n  const completedAt = t.completed_at ? new Date(t.completed_at) : null;\n  const dueOn       = t.due_on ? new Date(t.due_on + 'T00:00:00') : null;\n\n  if (completed) {\n    if (completedAt && completedAt >= last7 && completedAt <= now) completedLastWeek++;\n  } else {\n    totalOpen++;\n    if (dueOn && dueOn <  today) overdue++;\n    if (dueOn && dueOn >= today && dueOn <= in7) upcoming++;\n  }\n}\n\n// Monday of the current week as the snapshot date\nconst wk  = new Date(today);\nconst dow = wk.getDay();                 // 0=Sun .. 6=Sat\nwk.setDate(wk.getDate() + (dow === 0 ? -6 : 1 - dow));\nconst weekOf = wk.toISOString().slice(0, 10);\n\nreturn [{ json: {\n  'Department':          dept,\n  'Week Of':             weekOf,\n  'Completed Last Week': completedLastWeek,\n  'Overdue':             overdue,\n  'Upcoming Next Week':  upcoming,\n  'Total Open':          totalOpen,\n  'Snapshot Key':        weekOf + '|' + dept\n} }];"
+      },
+      "id": "EXAMPLE_UUID_54DCDB187A",
+      "name": "Bucket Tasks1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_40EE527845",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Snapshot Key"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Department",
+              "displayName": "Department",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Week Of",
+              "displayName": "Week Of",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Completed Last Week",
+              "displayName": "Completed Last Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Overdue",
+              "displayName": "Overdue",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Upcoming Next Week",
+              "displayName": "Upcoming Next Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Open",
+              "displayName": "Total Open",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Snapshot Key",
+              "displayName": "Snapshot Key",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "On-Time %",
+              "displayName": "On-Time %",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "EXAMPLE_UUID_48900D7AF8",
+      "name": "Upsert Department Weekly1",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1968,
+        672
+      ]
+    }
+  ],
+  "connections": {
+    "Loop Over Departments": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Asana: Get Tasks1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly (Mon 06:00)1": {
+      "main": [
+        [
+          {
+            "node": "Define Departments1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Departments1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Departments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asana: Get Tasks1": {
+      "main": [
+        [
+          {
+            "node": "Bucket Tasks1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bucket Tasks1": {
+      "main": [
+        [
+          {
+            "node": "Upsert Department Weekly1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Department Weekly1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Departments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

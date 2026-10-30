@@ -1,0 +1,188 @@
+{
+  "name": "Event Registration and Attendance Reporting Automation - version 01",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_1F2D048E18",
+      "name": "Weekly (Mon 06:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build one item per (event x status) for the CURRENT month, using the REAL GHL tag\n// format discovered in live data:  event-{event}-{YYYY-MM}-{status}\nconst EVENTS = ['mastermind', 'venture-vitality', 'pitch-to-yes'];\nconst STATUSES = ['registered', 'accepted', 'attended'];\nconst now = new Date();\nconst month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');\nconst out = [];\nfor (const event of EVENTS) {\n  for (const status of STATUSES) {\n    out.push({ json: { event, month, status, tag: `event-${event}-${month}-${status}` } });\n  }\n}\nreturn out;"
+      },
+      "id": "EXAMPLE_UUID_D80A34A9AD",
+      "name": "Define Event×Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ locationId: 'EXAMPLE_RESOURCE_ID_5271A38AF4', page: 1, pageLimit: 1, filters: [{ field: 'tags', operator: 'contains', value: $json.tag }] }) }}",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_F9BBE39479",
+      "name": "GHL: Count by Tag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Zip Define Event x Status items with their GHL counts (same order),\n// group into one row per event with registered/accepted/attended totals.\nconst defs = $('Define Event×Status').all();\nconst res = $input.all();\nconst byEvent = {};\nfor (let i = 0; i < defs.length; i++) {\n  const dd = defs[i].json;\n  const body = (res[i] && res[i].json) || {};\n  const total = Number(body.total ?? (body.meta && body.meta.total) ?? 0);\n  const key = dd.month + '|' + dd.event;\n  if (!byEvent[key]) byEvent[key] = { 'Event': dd.event, 'Month': dd.month, 'Registered': 0, 'Accepted': 0, 'Attended': 0, 'Snapshot Key': key };\n  if (dd.status === 'registered') byEvent[key]['Registered'] = total;\n  if (dd.status === 'accepted')  byEvent[key]['Accepted']  = total;\n  if (dd.status === 'attended')  byEvent[key]['Attended']  = total;\n}\nreturn Object.values(byEvent).map(json => ({ json }));"
+      },
+      "id": "EXAMPLE_UUID_E3CC7E414C",
+      "name": "Aggregate per Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_C488FE6D80",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Snapshot Key"
+          ],
+          "schema": []
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "EXAMPLE_UUID_4D807CC7D9",
+      "name": "Upsert Event Monthly",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WF8 — GHL Event Tags → Airtable Rollup\n\n**What it does:** Reads the GHL tags written by WF6/WF7 and rolls them into Airtable as a monthly snapshot per event: counts of `accepted`, `declined`, `attended`. GHL is the single source of truth — this only READS it.\n\n**Before running:**\n1. Re-select the **GHL SAMPLE** Header Auth credential on **GHL: Count by Tag** (same one as WF6/WF7).\n2. Edit **Define Event×Status** — list every event name (must match the names used in the tags exactly).\n3. In Airtable, create a table **Event Monthly Snapshot** with these fields, then set it on the **Upsert** node:\n   - `Event` (Single line text)\n   - `Month` (Single line text, e.g. 2026-06)\n   - `Accepted` (Number)\n   - `Declined` (Number)\n   - `Attended` (Number)\n   - `Snapshot Key` (Single line text) ← match field\n\n**Verify before trusting counts:** the GHL `contacts/search` body (field `tags`, operator `contains`) and the `total` field path may need adjusting to your GHL API version — run once and check the returned JSON.",
+        "height": 380,
+        "width": 460
+      },
+      "id": "EXAMPLE_UUID_F909C4B34A",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        288,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly (Mon 06:00)": {
+      "main": [
+        [
+          {
+            "node": "Define Event×Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Event×Status": {
+      "main": [
+        [
+          {
+            "node": "GHL: Count by Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL: Count by Tag": {
+      "main": [
+        [
+          {
+            "node": "Aggregate per Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate per Event": {
+      "main": [
+        [
+          {
+            "node": "Upsert Event Monthly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

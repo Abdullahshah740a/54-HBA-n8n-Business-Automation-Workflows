@@ -1,0 +1,440 @@
+{
+  "name": "Executive KPI and Sales Performance Dashboard Refresh Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "EXAMPLE_UUID_17259544CC",
+      "name": "Run Now (Manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        1808
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_F72A9AB017",
+      "name": "Weekly (Mon 07:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        2272,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compute the last completed Mon-Sun week and the current month window, at run time.\n// 'Last completed week' = the most recent full Mon-Sun week that has already ended\n// (e.g. running Monday 07:00 always reports on the week that just finished).\nconst now = new Date();\nconst dow = now.getUTCDay(); // 0=Sun,1=Mon,...6=Sat\nconst daysSinceMonday = (dow + 6) % 7;\nconst thisMonday = new Date(now); thisMonday.setUTCHours(0,0,0,0); thisMonday.setUTCDate(now.getUTCDate() - daysSinceMonday);\nconst lastMonday = new Date(thisMonday); lastMonday.setUTCDate(thisMonday.getUTCDate() - 7);\n\nfunction iso(d){ return d.toISOString().slice(0,10); }\n\nconst monthNum = lastMonday.getUTCMonth() + 1; // month option keyed off the reported week's Monday\nconst weekMonth = lastMonday.getUTCFullYear() + '-' + String(monthNum).padStart(2, '0');\nconst quarterNum = Math.ceil(monthNum / 3);\nconst weekQuarter = lastMonday.getUTCFullYear() + '-Q' + quarterNum;\n\nconst curMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));\nconst curMonthStr = now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0');\n\nreturn [{ json: {\n  lastMondayISO: iso(lastMonday),\n  thisMondayISO: iso(thisMonday),\n  weekMonth,\n  weekQuarter,\n  curMonthStartISO: iso(curMonthStart),\n  curMonthStr,\n  todayISO: iso(now)\n}}];"
+      },
+      "id": "EXAMPLE_UUID_72D4414DA0",
+      "name": "Compute Date Windows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_F4F6258ABB?pageSize=100&filterByFormula={{ encodeURIComponent(`AND(NOT(IS_BEFORE({Created At}, DATETIME_PARSE(\"${$('Compute Date Windows').first().json.lastMondayISO}\"))), IS_BEFORE({Created At}, DATETIME_PARSE(\"${$('Compute Date Windows').first().json.thisMondayISO}\")))`) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_99945E802F",
+      "name": "GET Opportunities (last wk)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2752,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_DF49835468?pageSize=100&fields%5B%5D=Calender%20Title&fields%5B%5D=Appointment%20Status&fields%5B%5D=Assigned%20User&filterByFormula={{ encodeURIComponent(`AND(NOT(IS_BEFORE({Appointment Time}, DATETIME_PARSE(\"${$('Compute Date Windows').first().json.lastMondayISO}\"))), IS_BEFORE({Appointment Time}, DATETIME_PARSE(\"${$('Compute Date Windows').first().json.thisMondayISO}\")))`) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_0A98A91959",
+      "name": "GET Raw Appointments (last wk)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2992,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://analyticsdata.googleapis.com/v1beta/properties/507732502:runReport",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleAnalyticsOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"dateRanges\": [\n    {\n      \"startDate\": \"{{ $('Compute Date Windows').first().json.curMonthStartISO }}\",\n      \"endDate\": \"today\"\n    }\n  ],\n  \"metrics\": [\n    { \"name\": \"activeUsers\" }\n  ]\n}",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_0CC579FE22",
+      "name": "GET GA4 Sitewide (MTD)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3232,
+        1808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un-freeze + self-populate the 4 time-based Priority Tracker rows (G-B, 2026-07-10).\n// Scope is deliberately narrow: New Leads / Alignment Calls / Closes per Week / Lead Gen per Month.\n// Membership Revenue, Paid Members, Proximity Members are NOT touched here -- those were\n// hand-corrected in Task 1/2 (see PRODUCTION_GROUND_TRUTH.md) and must not be re-patched\n// by this workflow, or it would silently re-fabricate numbers that were just fixed.\n\nconst win = $('Compute Date Windows').first().json;\n\nconst oppsBody = $('GET Opportunities (last wk)').first().json;\nconst newLeads = (oppsBody.records || []).length;\n\nconst apptBody = $('GET Raw Appointments (last wk)').first().json;\nconst alignmentCalls = (apptBody.records || []).filter((r) => {\n  const title = String((r.fields && r.fields['Calender Title']) || '').toLowerCase();\n  return title.includes('alignment');\n}).length;\n\nconst ga4Body = $('GET GA4 Sitewide (MTD)').first().json;\nconst ga4Row = (ga4Body.rows && ga4Body.rows[0]) || null;\nconst mtdVisitors = ga4Row ? Number((ga4Row.metricValues && ga4Row.metricValues[0] && ga4Row.metricValues[0].value) || 0) : 0;\n\nreturn [\n  { json: { recordId: 'EXAMPLE_AIRTABLE_ID_7099F5E6D1', fields: {\n      Actual: newLeads, Week: win.lastMondayISO, Month: win.weekMonth, Quarter: win.weekQuarter\n  }}},\n  { json: { recordId: 'EXAMPLE_AIRTABLE_ID_BD4F6886D4', fields: {\n      Actual: alignmentCalls, Week: win.lastMondayISO, Month: win.weekMonth, Quarter: win.weekQuarter\n  }}},\n  { json: { recordId: 'EXAMPLE_AIRTABLE_ID_B3FCAA6C6E', fields: {\n      Week: win.lastMondayISO, Month: win.weekMonth, Quarter: win.weekQuarter\n      // Actual intentionally omitted -- shell, gated on the still-unverified paid roster\n  }}},\n  { json: { recordId: 'EXAMPLE_AIRTABLE_ID_512FDB8AE2', fields: {\n      Actual: mtdVisitors, Month: win.curMonthStr\n  }}}\n];"
+      },
+      "id": "EXAMPLE_UUID_F869A9D891",
+      "name": "Compute Actuals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3472,
+        1808
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_AIRTABLE_ID_E64F75EBE2/{{ $json.recordId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {{ JSON.stringify($json.fields) }}\n}",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_E464B810D5",
+      "name": "PATCH CEO Actual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3712,
+        1808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extends G-B to also feed Sales Engine's weekly activity fields (2026-07-10),\n// retiring \"SAMPLE . Weekly Rollup -> Sales Engine\", which had 3 stacked bugs:\n//   1. Date-window bug -- it measured the week AHEAD (0 hours elapsed at run time),\n//      not the week that just ended, so every automated run read near-zero.\n//   2. Upsert-key bug -- matched on Airtable's own record \"id\", which the code never\n//      output, so it could never match an existing week's row.\n//   3. Closes were bucketed off Win Basis values (\"catalyst_paid\" etc.) that DO NOT\n//      EXIST on the live field (real options: open/lost/free_member/proximity_excluded/\n//      ghl_status_won/type_paid_stage) -- structurally guaranteed to always read 0.\n// This node reuses the already-correct last-completed-week window from Compute Date\n// Windows (fixes #1) and upserts matched on \"Week\" (fixes #2). It deliberately does NOT\n// write any close-related field (Catalyst/Core/Circle/Capital Engine/Nexus Total Closed,\n// or the close-rate formulas that depend on them) -- that needs a live tier signal that\n// doesn't exist yet (same gap as Task 2's paid-roster fix). Leaving those blank is honest,\n// not a regression -- do NOT invent a bucketing rule to fill them.\n\nfunction norm(v){ return (v == null ? '' : String(v)).toLowerCase().trim(); }\nfunction repBucket(name){\n  const n = norm(name);\n  if (n.includes('john')) return 'John';\n  if (n.includes('heather')) return 'Heather';\n  if (n.includes('mitchell')) return 'Mitchell';\n  if (n.includes('katie')) return 'Katie';\n  return null;\n}\nfunction isCancelled(s){\n  const n = norm(s);\n  return n.includes('cancel') || n.includes('noshow') || n.includes('no show') || n.includes('invalid');\n}\nfunction isConducted(s){\n  const n = norm(s);\n  return n.includes('show') && !n.includes('noshow') && !n.includes('no show');\n}\n\nconst win = $('Compute Date Windows').first().json;\n\nconst oppsBody = $('GET Opportunities (last wk)').first().json;\nconst newLeads = (oppsBody.records || []).length;\n\nconst apptBody = $('GET Raw Appointments (last wk)').first().json;\nconst appts = apptBody.records || [];\n\nlet booked = 0, conducted = 0;\nconst byRep = { John: 0, Heather: 0, Mitchell: 0, Katie: 0 };\n\nfor (const r of appts) {\n  const f = r.fields || {};\n  if (!norm(f['Calender Title']).includes('alignment')) continue;\n  const status = f['Appointment Status'];\n  if (isCancelled(status)) continue;\n  booked++;\n  const rep = repBucket(f['Assigned User']);\n  if (rep) byRep[rep]++;\n  if (isConducted(status)) conducted++;\n}\n\nreturn [{ json: {\n  'Week': win.lastMondayISO,\n  'New Leads': newLeads,\n  'Alignment Calls Booked': booked,\n  'Alignment Calls Conducted': conducted,\n  'Alignment Calls by John': byRep.John,\n  'Alignment Calls by Heather': byRep.Heather,\n  'Alignment Calls by Mitchell': byRep.Mitchell,\n  'Alignment Calls by Katie': byRep.Katie\n}}];"
+      },
+      "id": "EXAMPLE_UUID_19E350B903",
+      "name": "Compute Sales Engine Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3232,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_4E0F029915?maxRecords=1&filterByFormula={{ encodeURIComponent(`IS_SAME({Week}, DATETIME_PARSE(\"${$('Compute Sales Engine Row').first().json.Week}\"), 'day')`) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_22CC8E12AC",
+      "name": "GET Sales Engine Week",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3472,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Explicit find-then-write instead of n8n's native \"upsert\" operation. The native upsert\n// (matchingColumns on a date-type field) was tried first and produced 2 duplicate rows for\n// the same Week on a single import+run -- its match logic didn't reliably find its own\n// freshly-written row. This GET-then-decide-then-PATCH/POST shape is the same pattern\n// already proven reliable everywhere else in this workflow (CEO Command Center writes).\n\nconst found = $input.first().json;\nconst row = $('Compute Sales Engine Row').first().json;\nconst fields = { ...row };\n\nconst base = 'https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_4E0F029915';\nconst existing = (found.records || [])[0];\n\nif (existing) {\n  return [{ json: { method: 'PATCH', url: `${base}/${existing.id}`, fields } }];\n}\nreturn [{ json: { method: 'POST', url: base, fields } }];"
+      },
+      "id": "EXAMPLE_UUID_069E0EE16E",
+      "name": "Decide Create or Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {{ JSON.stringify($json.fields) }}\n}",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_0482282C49",
+      "name": "Write Sales Engine Week",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3952,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_F4F6258ABB?pageSize=100&filterByFormula={{ encodeURIComponent(`OR({Unified Stage}=\"Alignment Call Conducted\", {Unified Stage}=\"Pulse Check Booked\", {Unified Stage}=\"Pulse Check Conducted\", {Unified Stage}=\"Closed Won\", {Unified Stage}=\"Closed Lost\")`) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_25CCE0DCF5",
+      "name": "GET Opportunities (Alignment+ cumulative)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3232,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_58F9C6AD35?maxRecords=1&sort%5B0%5D%5Bfield%5D=Snapshot%20Date&sort%5B0%5D%5Bdirection%5D=desc",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_44B842F0A0",
+      "name": "GET Membership Conversion (Paid Members)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3472,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pooled Overall Close Rate (Task 5 CORRECTION, 2026-07-13 -- supersedes the earlier\n// Membership-Conversion-field ADD-ON, which is now dead/orphaned, see PRODUCTION_GROUND_TRUTH).\n// TRUE overall close rate = cumulative Paid Members / cumulative alignment-calls-conducted-or-\n// beyond (Unified Stage in Alignment Call Conducted/Pulse Check Booked/Pulse Check Conducted/\n// Closed Won/Closed Lost -- live snapshot 2026-07-13 = 21). This is a POOLED ratio, not an\n// average of weekly rates -- the next node writes it to exactly ONE hardcoded, permanently-fixed\n// Sales Engine row (never the rolling \"current week\" row, which changes every run) so the CEO\n// tile's Average-summary resolves to this one value instead of blending multiple weeks together.\n// Paid Members is read live from Membership Conversion but NOT re-patched anywhere by this\n// workflow -- it's provisional (hand-corrected in Task 2, PRODUCTION_GROUND_TRUTH SS B33) and\n// this calc self-corrects automatically once the real roster/tags land there.\n\nconst oppsBody = $('GET Opportunities (Alignment+ cumulative)').first().json;\nconst alignmentOrBeyond = (oppsBody.records || []).length;\n\nconst mcBody = $('GET Membership Conversion (Paid Members)').first().json;\nconst mcRow = (mcBody.records || [])[0];\nconst paidMembers = mcRow ? Number(mcRow.fields['Paid Members'] || 0) : 0;\n\nconst pooledCloseRate = alignmentOrBeyond > 0 ? (paidMembers / alignmentOrBeyond) : null;\n\nreturn [{ json: {\n  paidMembers,\n  alignmentOrBeyond,\n  pooledCloseRate\n}}];"
+      },
+      "id": "EXAMPLE_UUID_1B461298FC",
+      "name": "Compute Pooled Close Rate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/EXAMPLE_RESOURCE_ID_3584EBCAFD/EXAMPLE_RESOURCE_ID_4E0F029915/EXAMPLE_AIRTABLE_ID_47E2A97675",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"Overall Close Rate (Pooled)\": {{ JSON.stringify($json.pooledCloseRate) }}\n  }\n}",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_F984212DE7",
+      "name": "PATCH Sales Engine Pooled Close Rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3952,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WF CEO Actuals Refresh (rewritten 2026-07-10, G-B + Sales Engine extension; + 2026-07-13 pooled close-rate branch)\n\nWeekly (Mon 07:00) + manual. Three branches; Branch 3 is cumulative/all-time and does NOT depend on the last-completed-week data the other two use:\n\n**Branch 1 -- CEO Command Center (Priority Tracker):**\n- **New Leads** (week) = count of Opportunities with Created At in the last completed Mon-Sun week.\n- **Alignment Calls** (week) = count of Raw Appointments in that week whose Calender Title contains \"alignment\".\n- **Closes per Week** (week) = period rolled forward, Actual left BLANK on purpose -- shell, gated on the still-unverified paid roster.\n- **Lead Generation per Month** (month) = GA4 sitewide activeUsers, month-to-date, property 507732502. Expected near-zero -- real finding, not a bug.\n\n**Branch 2 -- Sales Engine weekly row (added 2026-07-10, replaces \"SAMPLE . Weekly Rollup -> Sales Engine\"):**\nWrites New Leads, Alignment Calls Booked/Conducted, and the by-rep breakdown (John/Heather/Mitchell/Katie) onto the current week's Sales Engine row via an explicit GET-then-decide-then-PATCH/POST (GET Sales Engine Week -> Decide Create or Update -> Write Sales Engine Week) -- NOT n8n's native \"upsert\" operation, which was tried first and produced 2 duplicate rows for the same Week in one run (its date-field match didn't reliably find its own freshly-written row; both duplicates were deleted 2026-07-10). The retired workflow had 3 stacked bugs: it measured the week AHEAD instead of the week just ended (near-zero always), it upserted matched on Airtable's own record id which the code never output (could never match), and it bucketed closes off Win Basis values (\"catalyst_paid\" etc.) that do not exist on the live field. This branch fixes the first two (date window + reliable match-or-create). It deliberately leaves ALL close-related fields untouched (Catalyst/Core/Circle/Capital Engine/Nexus Total Closed, and therefore the close-rate formulas that read them) -- those need a live paid+tier signal that doesn't exist yet (same gap as the Task 2 paid-roster fix). Do not invent a bucketing rule to fill them; wait for the real signal.\n\n**Branch 3 -- Sales Engine pooled Overall Close Rate (added 2026-07-13, Task 5 CORRECTION):**\nComputes the TRUE overall close rate = cumulative Paid Members (Membership Conversion, live row) / cumulative alignment-calls-conducted-or-beyond (Opportunities where Unified Stage is Alignment Call Conducted/Pulse Check Booked/Pulse Check Conducted/Closed Won/Closed Lost -- live snapshot 2026-07-13 = 21; includes one known test row \"Test Arham\" EXAMPLE_AIRTABLE_ID_1C304922E8 still not deleted per PRODUCTION_GROUND_TRUTH SS B15). Writes the decimal into Sales Engine's `Overall Close Rate (Pooled)` field (fld0YUjiLS4qdBba4) on ONE hardcoded record id (EXAMPLE_AIRTABLE_ID_47E2A97675, the most-recent existing Sales Engine row as of 2026-07-13) -- deliberately NOT the rolling \"current week\" row from Branch 2, because a new row is created every week and writing there would eventually put non-blank values on multiple rows, breaking the CEO tile's Average-summary (which must resolve to exactly one pooled value). If Misa wants a different anchor row, change the record id in the \"PATCH Sales Engine Pooled Close Rate\" node's URL -- nothing else needs to change. Does NOT touch the orphaned `Alignment Calls Conducted` field on Membership Conversion (fldDQASQtiITUUl7W, dead ADD-ON leftover -- Misa to delete in UI) and does NOT re-patch Paid Members/Membership Revenue/Proximity Members anywhere (see Branch 1 note below).\n\n**Membership rows (Paid Members / Membership Revenue / Proximity Members) are still deliberately NOT touched by this workflow.** They were hand-corrected in Task 1/2 (PRODUCTION_GROUND_TRUTH SS B33) after the dead `(by Aug 31)` keys were found silently failing to patch them -- Paid Members is now 2 (not 14), Membership Revenue is blanked pending a real payment feed. Re-adding automated patching here would risk silently overwriting those hand-fixed numbers if the (currently inactive) Membership Conversion automations ever get reactivated. Branch 3 above reads Paid Members live (read-only) for its own calculation without writing it back anywhere.\n\n**Action for Misa:** delete \"SAMPLE . Weekly Rollup -> Sales Engine\" from n8n once Branch 2 is verified live -- this workflow now covers everything it was supposed to do, correctly. \"GHL Calendar -> Sales Engine\" is a DIFFERENT, misleadingly-named workflow (it actually feeds Raw Appointments via webhook, not Sales Engine) -- leave that one alone, it's unrelated and still useful. Also: rebind the CEO \"Overall Close Rate\" tile to Sales Engine's `Overall Close Rate (Pooled)` field (source stays Sales Engine, summary stays Average) -- separate UI step, not doable via API.\n\n**Before running:** re-select the Airtable credential (n8n SAMPLE OS Integration, id ED2bB9oQnzN5KH4n) and the Google Analytics credential (id E0J7LSjtunaQFQFU) if either imports as a placeholder."
+      },
+      "id": "EXAMPLE_UUID_129F52CB92",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2512,
+        2176
+      ],
+      "height": 880,
+      "width": 680
+    }
+  ],
+  "connections": {
+    "Run Now (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Compute Date Windows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly (Mon 07:00)": {
+      "main": [
+        [
+          {
+            "node": "Compute Date Windows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Date Windows": {
+      "main": [
+        [
+          {
+            "node": "GET Opportunities (last wk)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Opportunities (last wk)": {
+      "main": [
+        [
+          {
+            "node": "GET Raw Appointments (last wk)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Raw Appointments (last wk)": {
+      "main": [
+        [
+          {
+            "node": "GET GA4 Sitewide (MTD)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Compute Sales Engine Row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GET Opportunities (Alignment+ cumulative)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET GA4 Sitewide (MTD)": {
+      "main": [
+        [
+          {
+            "node": "Compute Actuals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Actuals": {
+      "main": [
+        [
+          {
+            "node": "PATCH CEO Actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Sales Engine Row": {
+      "main": [
+        [
+          {
+            "node": "GET Sales Engine Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Sales Engine Week": {
+      "main": [
+        [
+          {
+            "node": "Decide Create or Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide Create or Update": {
+      "main": [
+        [
+          {
+            "node": "Write Sales Engine Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Opportunities (Alignment+ cumulative)": {
+      "main": [
+        [
+          {
+            "node": "GET Membership Conversion (Paid Members)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Membership Conversion (Paid Members)": {
+      "main": [
+        [
+          {
+            "node": "Compute Pooled Close Rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Pooled Close Rate": {
+      "main": [
+        [
+          {
+            "node": "PATCH Sales Engine Pooled Close Rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

@@ -1,0 +1,510 @@
+{
+  "name": "Weekly Blog Publishing and Marketing Reporting Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "EXAMPLE_UUID_99C5D92E2D",
+      "name": "Run Now (Manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        960,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "EXAMPLE_UUID_3A1A11D918",
+      "name": "Weekly (Mon 06:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://example.com/resource/4286fc2f08",
+        "options": {}
+      },
+      "id": "EXAMPLE_UUID_6470DC6B85",
+      "name": "WordPress: Get Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Count WordPress published posts per ISO week (Monday-dated), to fill\n// Marketing Engine -> \"Blogs Published\". The WP HTTP node returns one item per post.\nconst items = $input.all();\nconst byWeek = {};\nfor (const it of items){\n  const p = it.json;\n  const raw = (p.date || p.date_gmt || '').slice(0,10);\n  if (!raw) continue;\n  const d = new Date(raw + 'T00:00:00');\n  const dow = d.getDay();                 // 0=Sun .. 6=Sat\n  const monday = new Date(d);\n  monday.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));\n  const wk = monday.toISOString().slice(0,10);\n  byWeek[wk] = (byWeek[wk] || 0) + 1;\n}\nreturn Object.keys(byWeek).sort().map(w => ({ json: {\n  'Week': w,\n  'Week Key': w,\n  'Blogs Published': byWeek[w]\n}}));"
+      },
+      "id": "EXAMPLE_UUID_417C610271",
+      "name": "Count Posts per Week",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_3584EBCAFD",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "EXAMPLE_RESOURCE_ID_CB1E12E1B5",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Week Key"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Week",
+              "displayName": "Week",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sample LinkedIn Posts",
+              "displayName": "Sample LinkedIn Posts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Val LinkedIn Posts",
+              "displayName": "Val LinkedIn Posts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ardy LinkedIn Posts",
+              "displayName": "Ardy LinkedIn Posts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company LinkedIn Posts",
+              "displayName": "Company LinkedIn Posts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sample Best LinkedIn Views",
+              "displayName": "Sample Best LinkedIn Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Val Best LinkedIn Views",
+              "displayName": "Val Best LinkedIn Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ardy Best LinkedIn Views",
+              "displayName": "Ardy Best LinkedIn Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company Best LinkedIn Views",
+              "displayName": "Company Best LinkedIn Views",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Blogs Published",
+              "displayName": "Blogs Published",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Podcasts Episodes",
+              "displayName": "Podcasts Episodes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "YouTube Total Subscribers",
+              "displayName": "YouTube Total Subscribers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "YouTube Subscribers Gained",
+              "displayName": "YouTube Subscribers Gained",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Speaking Engagements",
+              "displayName": "Speaking Engagements",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Events Attended",
+              "displayName": "Events Attended",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mastermind Registrations",
+              "displayName": "Mastermind Registrations",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Venture Vitality Registrations",
+              "displayName": "Venture Vitality Registrations",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pitch Diagnostic Registrations",
+              "displayName": "Pitch Diagnostic Registrations",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cocktail Registrations",
+              "displayName": "Cocktail Registrations",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mastermind Attendees",
+              "displayName": "Mastermind Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Venture Vitality Attendees",
+              "displayName": "Venture Vitality Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pitch Diagnostic Attendees",
+              "displayName": "Pitch Diagnostic Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cocktail Attendees",
+              "displayName": "Cocktail Attendees",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Newsletter Open Rate",
+              "displayName": "Newsletter Open Rate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Newsletter Reply Rate",
+              "displayName": "Newsletter Reply Rate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "New Leads from Marketing",
+              "displayName": "New Leads from Marketing",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Total Event Attendance",
+              "displayName": "Total Event Attendance",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Total Event Registrations",
+              "displayName": "Total Event Registrations",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Event Show Rate",
+              "displayName": "Event Show Rate",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Week Key",
+              "displayName": "Week Key",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "EXAMPLE_UUID_88E447D539",
+      "name": "Upsert Marketing Engine",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1808,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WordPress Blogs Published -> Marketing Engine\n\n**What it does:** Pulls published posts from the public WordPress REST API, counts how many were published each week (Monday-dated), and upserts that count into **Marketing Engine -> Blogs Published**, matched on **Week Key** (text). Only the Blogs Published field is touched; other Marketing Engine fields are left intact.\n\n**Setup:** No credential needed for WordPress (published posts are public). Airtable uses the existing **n8n SAMPLE OS Integration** token.\n\n**Caveats:**\n- WP returns max 100 posts per page. If the site ever exceeds 100 posts, add pagination (page param / Link header) on *WordPress: Get Posts*.\n- Week start = Monday (matches WF5). The upsert matches on the **Week Key** text field (date-field matching is unreliable in Airtable upsert).",
+        "height": 300,
+        "width": 440
+      },
+      "id": "EXAMPLE_UUID_02035426E2",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        848
+      ]
+    }
+  ],
+  "connections": {
+    "Run Now (Manual)": {
+      "main": [
+        [
+          {
+            "node": "WordPress: Get Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly (Mon 06:00)": {
+      "main": [
+        [
+          {
+            "node": "WordPress: Get Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WordPress: Get Posts": {
+      "main": [
+        [
+          {
+            "node": "Count Posts per Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Posts per Week": {
+      "main": [
+        [
+          {
+            "node": "Upsert Marketing Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}

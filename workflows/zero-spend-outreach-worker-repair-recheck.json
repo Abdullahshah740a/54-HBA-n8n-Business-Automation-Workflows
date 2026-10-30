@@ -1,0 +1,130 @@
+{
+  "name": "Zero Spend Outreach Worker Repair Recheck Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "8 22 12 10 *"
+            }
+          ]
+        }
+      },
+      "id": "once",
+      "name": "One Owned No Send Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if(Math.abs(Date.now()-Date.parse(\"2026-10-12T22:08:00.000Z\"))>90000)throw new Error('NO_SEND_CHECK_WINDOW_EXPIRED');return [{json:{run_id:\"SAMPLE-group1-paused-proof-2026-10-10\"}}];"
+      },
+      "id": "guard",
+      "name": "Check Window",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "mode": "id",
+          "value": "EXAMPLE_WORKFLOW_ID_4CF5E7FCC3"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $json.run_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "step",
+      "name": "Run Main Worker Once",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "retryOnFail": false,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r=$input.first().json;if(r.calls!==0||r.cost_usd!==0||r.lock_retained!==false)throw new Error('EXPECTED_NO_ACTION_RECEIPT');return [{json:{...r,verification_execution_id:$execution.id,scope:'one existing main-worker invocation with production provider/release gates closed; no approved record or copy changes'}}];"
+      },
+      "id": "receipt",
+      "name": "Verify Zero Spend Receipt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "One Owned No Send Check": {
+      "main": [
+        [
+          {
+            "node": "Check Window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Window": {
+      "main": [
+        [
+          {
+            "node": "Run Main Worker Once",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Main Worker Once": {
+      "main": [
+        [
+          {
+            "node": "Verify Zero Spend Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "UTC",
+    "availableInMCP": false
+  }
+}

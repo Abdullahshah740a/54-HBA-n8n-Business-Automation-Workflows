@@ -1,0 +1,61 @@
+# Email Outcome Response and Campaign Protection Automation
+
+Applies queued actions arising from verified email outcomes and reconciles their provider results before marking the effects complete.
+
+> Sanitized workflow export. Deployment testing has not been performed.
+
+## Functionalities
+
+- **Prioritized tasks:** Processes pending campaign pauses before address blocks and person-stop checks.
+- **Bounded provider action:** Saves a checkpoint before performing the selected permitted request.
+- **Readback confirmation:** Reads the resulting provider state and retains a hold if the effect is unresolved.
+- **Task accounting:** Returns the remaining effect count for the monitoring workflow.
+
+## Workflow
+
+1. Read and validate outcome state.
+2. Select and reserve the next permitted task.
+3. Save and acknowledge its checkpoint.
+4. Perform the provider request and inspect the result.
+5. Reconcile the effect and save the updated task state.
+
+## Tools
+
+| Tool | Purpose |
+| --- | --- |
+| n8n | Workflow routing, internal calls and execution context. |
+| n8n Data Tables | Saved operating state, revisions, ownership and receipts. |
+| JavaScript | Validation, state transitions and result shaping. |
+| Instantly API | Campaign, recipient, verification or outcome operations as specified. |
+
+## Repository contents
+
+- [`workflows/email-outcome-response-and-campaign-protection.json`](../workflows/email-outcome-response-and-campaign-protection.json)
+
+| Export | Nodes | Original export status | Version notes |
+| --- | ---: | --- | --- |
+| `email-outcome-response-and-campaign-protection.json` | 21 | Active | Supplied export |
+
+## Setup
+
+1. Import the selected JSON file into a compatible n8n instance. All published exports are inactive.
+2. Open each node and reconnect the required n8n credentials. Original credential bindings were removed.
+3. Replace `EXAMPLE_*` resource identifiers, `example.com` endpoints, synthetic contacts and deployment-specific settings with your own configuration.
+4. Create the required destination sheets/tables, field mappings, views and state-store schemas before writing any records.
+5. Rebind Execute Workflow nodes to the corresponding workflows imported into your instance. Original workflow IDs are not portable.
+6. Review prompts, scoring criteria, approval rules, spending caps and historical time windows. Keep the existing approval and no-send controls in place.
+7. Use synthetic input to verify branches and destination mappings, then enable the appropriate trigger when the configuration is complete.
+
+Credential types referenced by the original export: `httpHeaderAuth`.
+
+## Export limitations and configuration notes
+
+- Marked active in the export. Campaign pause and block-list writes are real configured effects. The stop-person branch is implemented as a lead read, so it should not be described as a confirmed stop write.
+- Workflow export state describes the supplied file only; successful live execution has not been verified.
+- Embedded client/prospect examples were replaced. Cached execution data, pinned data and credential bindings were removed.
+- Resource IDs, URLs and evidence hashes were replaced for publication. Some fixtures and historical recovery scenarios require new test data and regenerated evidence.
+- API credentials belong in n8n credential storage or the configured secret store. Do not commit live keys, contact lists or execution receipts.
+
+## Validation
+
+The preparation checks parse the JSON, preserve node counts and check connection targets. Code-node syntax is checked separately without executing the workflow. These checks do not verify provider access, business results or production readiness.
