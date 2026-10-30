@@ -1,7 +1,7 @@
 .env
 .env.*
 credentials*.json
-*execution*.json
-*receipt*.json
+execution-data/
+receipts/
 node_modules/
 __pycache__/
